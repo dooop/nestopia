@@ -171,7 +171,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Build library and project-linked sample
         run: |
-          ./gradlew --no-daemon :nes:assembleRelease :app:assembleLocalDebug \
+          ./gradlew --no-daemon :nes:testDebugUnitTest :nes:assembleRelease :app:assembleLocalDebug \
             -Pnes.abis="${NES_ABIS}"
       - name: Build sample from the prebuilt AAR
         run: |

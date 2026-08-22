@@ -3,10 +3,16 @@ import SwiftUI
 public struct NESView: View {
     @ObservedObject private var engine: NESEngine
     private let showsControls: Bool
+    private let controllerConfiguration: NESControllerConfiguration
 
-    public init(engine: NESEngine, showsControls: Bool = true) {
+    public init(
+        engine: NESEngine,
+        showsControls: Bool = true,
+        controllerConfiguration: NESControllerConfiguration = .init()
+    ) {
         self.engine = engine
         self.showsControls = showsControls
+        self.controllerConfiguration = controllerConfiguration
     }
 
     public var body: some View {
@@ -21,10 +27,7 @@ public struct NESView: View {
                 status
             }
             if showsControls {
-                VStack {
-                    Spacer()
-                    NESControls(engine: engine)
-                }
+                NESControls(engine: engine, configuration: controllerConfiguration)
             }
         }
         .ignoresSafeArea()

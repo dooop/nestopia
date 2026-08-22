@@ -54,6 +54,21 @@ The manifest falls back to source mode while it still contains the placeholder b
 
 `NES` starts on appearance and stops on disappearance. `NESView(engine:)` and `NESEngine` are public for hosts that need explicit lifecycle control, state slots, or custom controls. Touch controls are included. Apple game controllers and keyboards are mapped automatically (D-pad, A/B, Start/Select).
 
+The on-screen controller supports system, NES, and Famicom themes. Automatic presentation uses a controller body when space permits and switches to a translucent overlay in landscape or compact-height containers. A host can force either mode and replace any palette color:
+
+```swift
+NES(
+    rom: romURL,
+    controllerConfiguration: NESControllerConfiguration(
+        theme: .famicom,
+        presentationMode: .automatic,
+        colors: NESControllerColorOverrides(actionButtons: .pink)
+    )
+)
+```
+
+The Apple system theme uses native Liquid Glass on Apple 26 platforms and falls back to adaptive system material on earlier versions. Both variants inherit the host accent color.
+
 ## Android
 
 Requirements: JDK 17, Android SDK 37, CMake 3.22.1, and NDK 29. The default ABIs are `arm64-v8a,x86_64`; override them with `-Pnes.abis=...`.
@@ -92,6 +107,20 @@ implementation("io.github.dooop:nes:<version>")
 The sample has `local` and `maven` flavors. `localDebug` consumes the source project, `localRelease` consumes an AAR passed with `-Pnes.releaseAar=...`, and the `maven` variants consume the published package.
 
 The sample uses Android's document picker and declares phone, tablet, gamepad, and Android TV compatibility. Compose touch controls and Android key/gamepad events map to the same native input masks as Apple.
+
+Compose exposes the matching controller options. The system theme is derived from the surrounding Material 3 theme, including its primary, secondary, surface, and content colors:
+
+```kotlin
+NES(
+    configuration = NESConfiguration(romUri = documentUri),
+    controllerConfiguration = NESControllerConfiguration(
+        theme = NESControllerTheme.NES,
+        presentationMode = NESControllerPresentationMode.Automatic,
+        colors = NESControllerColorOverrides(actionButtons = Color(0xFFE91E63)),
+    ),
+    modifier = Modifier.fillMaxSize(),
+)
+```
 
 ## ROMs and BIOS files
 

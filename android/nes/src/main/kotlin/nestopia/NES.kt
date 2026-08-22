@@ -13,6 +13,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 fun NES(
     configuration: NESConfiguration,
     modifier: Modifier = Modifier,
+    controllerConfiguration: NESControllerConfiguration = NESControllerConfiguration(),
 ) {
     val context = LocalContext.current
     val engine = remember(configuration) { NESEngine(context, configuration) }
@@ -39,5 +40,6 @@ fun NES(
         engine = engine,
         modifier = modifier,
         showsControls = configuration.showsTouchControls,
+        controllerConfiguration = controllerConfiguration,
     )
 }

@@ -31,6 +31,7 @@ fun NESView(
     engine: NESEngine,
     modifier: Modifier = Modifier,
     showsControls: Boolean = true,
+    controllerConfiguration: NESControllerConfiguration = NESControllerConfiguration(),
 ) {
     val frame by engine.frame.collectAsStateWithLifecycle()
     val state by engine.state.collectAsStateWithLifecycle()
@@ -68,6 +69,7 @@ fun NESView(
         if (showsControls) {
             NESControls(
                 engine = engine,
+                configuration = controllerConfiguration,
                 modifier =
                     Modifier
                         .align(Alignment.BottomCenter)
