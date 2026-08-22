@@ -9,6 +9,7 @@
 DerivedData/
 local.properties
 android/local.properties
+CLAUDE.local.md
 *.xcarchive
 *.ipa
 *.apk
