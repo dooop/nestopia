@@ -52,7 +52,7 @@ The public `NES` Swift target is always compiled from source. Its `CNESCore` dep
 
 The manifest falls back to source mode while it still contains the placeholder binary checksum. Run `swift package reset` after switching modes in an existing checkout. Release automation builds iOS, iOS Simulator, tvOS, tvOS Simulator, and universal macOS slices, validates the resulting local XCFramework, and then updates the release URL and checksum through a pull request.
 
-`NES` starts on appearance and stops on disappearance. `NESView(engine:)` and `NESEngine` are public for hosts that need explicit lifecycle control, state slots, or custom controls. Touch controls are included. Apple game controllers and keyboards are mapped automatically (D-pad, A/B, Start/Select).
+`NES` starts on appearance and stops on disappearance. `NESView(engine:)` and `NESEngine` are public for hosts that need explicit lifecycle control, state slots, or custom controls. Touch controls are included. Apple game controllers and keyboards are mapped automatically (D-pad, A/B, Start/Select). Connecting an external controller hides the on-screen controls. tvOS never displays touch controls and instead asks the player to connect a controller when none is available.
 
 The on-screen controller supports system, NES, and Famicom themes. Automatic presentation uses a controller body when space permits and switches to a translucent overlay in landscape or compact-height containers. A host can force either mode and replace any palette color:
 
@@ -106,7 +106,7 @@ implementation("io.github.dooop:nes:<version>")
 
 The sample has `local` and `maven` flavors. `localDebug` consumes the source project, `localRelease` consumes an AAR passed with `-Pnes.releaseAar=...`, and the `maven` variants consume the published package.
 
-The sample uses Android's document picker and declares phone, tablet, gamepad, and Android TV compatibility. Compose touch controls and Android key/gamepad events map to the same native input masks as Apple.
+The sample uses Android's document picker and declares phone, tablet, gamepad, and Android TV compatibility. Compose touch controls and Android key/gamepad events map to the same native input masks as Apple, including analog sticks and up to two players. Connecting a physical controller hides the on-screen controls. Android TV never displays touch controls and instead asks the player to connect a controller when none is available.
 
 Compose exposes the matching controller options. The system theme is derived from the surrounding Material 3 theme, including its primary, secondary, surface, and content colors:
 

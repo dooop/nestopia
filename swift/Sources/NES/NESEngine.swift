@@ -10,6 +10,7 @@ public final class NESEngine: ObservableObject {
 
     @Published public private(set) var state: NESState = .idle
     @Published public private(set) var frame: CGImage?
+    @Published public private(set) var hasConnectedController = false
 
     public let configuration: NESConfiguration
 
@@ -32,6 +33,11 @@ public final class NESEngine: ObservableObject {
 
     public func start() {
         guard state == .idle || state == .stopped else { return }
+        if controller == nil {
+            controller = NESGameController(engine: self) { [weak self] connected in
+                self?.hasConnectedController = connected
+            }
+        }
         Self.claimLock.lock()
         guard !Self.engineClaimed else {
             Self.claimLock.unlock()
@@ -75,7 +81,6 @@ public final class NESEngine: ObservableObject {
             self.audio?.start()
             self.installTimer(core: core)
             DispatchQueue.main.async {
-                self.controller = NESGameController(engine: self)
                 self.state = .running
             }
         }
@@ -214,6 +219,7 @@ public final class NESEngine: ObservableObject {
         }
         DispatchQueue.main.async { [weak self] in
             self?.controller = nil
+            self?.hasConnectedController = false
             self?.state = finalState
         }
     }

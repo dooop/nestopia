@@ -19,3 +19,14 @@ import Testing
     #expect(NESControllerConfiguration(overlayOpacity: -1).overlayOpacity == 0)
     #expect(NESControllerConfiguration(overlayOpacity: 2).overlayOpacity == 1)
 }
+
+@Test func externalControllerHidesOnScreenControls() {
+    #expect(shouldShowOnScreenControls(requested: true, isTelevision: false, hasExternalController: false))
+    #expect(!shouldShowOnScreenControls(requested: true, isTelevision: false, hasExternalController: true))
+}
+
+@Test func televisionNeverShowsControlsAndPromptsWithoutController() {
+    #expect(!shouldShowOnScreenControls(requested: true, isTelevision: true, hasExternalController: false))
+    #expect(shouldShowControllerConnectionPrompt(isTelevision: true, hasExternalController: false))
+    #expect(!shouldShowControllerConnectionPrompt(isTelevision: true, hasExternalController: true))
+}

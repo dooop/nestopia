@@ -1,14 +1,17 @@
 package nestopia
 
+import android.content.res.Configuration
 import android.view.KeyEvent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,6 +26,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -36,6 +40,10 @@ fun NESView(
     val frame by engine.frame.collectAsStateWithLifecycle()
     val state by engine.state.collectAsStateWithLifecycle()
     val focusRequester = remember { FocusRequester() }
+    val deviceConfiguration = LocalConfiguration.current
+    val isTelevision =
+        (deviceConfiguration.uiMode and Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION
+    val hasExternalController = rememberHasExternalController()
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -66,7 +74,11 @@ fun NESView(
             else -> Text("NES", color = Color.Gray)
         }
 
-        if (showsControls) {
+        if (hasExternalController || isTelevision) {
+            NESExternalControllerInput(engine, Modifier.fillMaxSize())
+        }
+
+        if (shouldShowOnScreenControls(showsControls, isTelevision, hasExternalController)) {
             NESControls(
                 engine = engine,
                 configuration = controllerConfiguration,
@@ -78,8 +90,36 @@ fun NESView(
                         .padding(20.dp),
             )
         }
+
+        if (shouldShowControllerConnectionPrompt(isTelevision, hasExternalController)) {
+            Column(
+                modifier =
+                    Modifier
+                        .background(Color.Black.copy(alpha = 0.72f), MaterialTheme.shapes.large)
+                        .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("🎮", style = MaterialTheme.typography.displaySmall)
+                Text(
+                    "Connect a controller to play",
+                    color = Color.White,
+                    style = MaterialTheme.typography.titleLarge,
+                )
+            }
+        }
     }
 }
+
+internal fun shouldShowOnScreenControls(
+    requested: Boolean,
+    isTelevision: Boolean,
+    hasExternalController: Boolean,
+): Boolean = requested && !isTelevision && !hasExternalController
+
+internal fun shouldShowControllerConnectionPrompt(
+    isTelevision: Boolean,
+    hasExternalController: Boolean,
+): Boolean = isTelevision && !hasExternalController
 
 private fun KeyEvent.toNESButton(): NESButton? =
     when (keyCode) {

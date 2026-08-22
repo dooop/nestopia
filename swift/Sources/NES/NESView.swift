@@ -26,11 +26,42 @@ public struct NESView: View {
             } else {
                 status
             }
-            if showsControls {
+            if shouldShowOnScreenControls(
+                requested: showsControls,
+                isTelevision: isTelevision,
+                hasExternalController: engine.hasConnectedController
+            ) {
                 NESControls(engine: engine, configuration: controllerConfiguration)
+            }
+            if shouldShowControllerConnectionPrompt(
+                isTelevision: isTelevision,
+                hasExternalController: engine.hasConnectedController
+            ) {
+                controllerConnectionPrompt
             }
         }
         .ignoresSafeArea()
+    }
+
+    private var isTelevision: Bool {
+        #if os(tvOS)
+            true
+        #else
+            false
+        #endif
+    }
+
+    private var controllerConnectionPrompt: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "gamecontroller")
+                .font(.system(size: 52))
+            Text("Connect a controller to play")
+                .font(.title2.bold())
+        }
+        .foregroundStyle(.white)
+        .padding(32)
+        .background(.black.opacity(0.72), in: RoundedRectangle(cornerRadius: 24))
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder private var status: some View {
@@ -46,4 +77,19 @@ public struct NESView: View {
             Text("NES").font(.largeTitle.bold()).foregroundStyle(.secondary)
         }
     }
+}
+
+func shouldShowOnScreenControls(
+    requested: Bool,
+    isTelevision: Bool,
+    hasExternalController: Bool
+) -> Bool {
+    requested && !isTelevision && !hasExternalController
+}
+
+func shouldShowControllerConnectionPrompt(
+    isTelevision: Bool,
+    hasExternalController: Bool
+) -> Bool {
+    isTelevision && !hasExternalController
 }
