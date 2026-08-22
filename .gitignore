@@ -1,0 +1,15 @@
+.DS_Store
+.build/
+.swiftpm/
+.idea/
+.gradle/
+.kotlin/
+**/.cxx/
+**/build/
+DerivedData/
+local.properties
+android/local.properties
+*.xcarchive
+*.ipa
+*.apk
+*.aar

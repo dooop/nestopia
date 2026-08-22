@@ -1,0 +1,1 @@
+-keep class org.nestopia.nes.internal.NativeNES { *; }
