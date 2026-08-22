@@ -1,1 +1,1 @@
--keep class org.nestopia.nes.internal.NativeNES { *; }
+-keep class nestopia.internal.NativeNES { *; }

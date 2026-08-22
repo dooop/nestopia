@@ -1,4 +1,4 @@
-package org.nestopia.nes
+package nestopia
 
 import android.view.KeyEvent
 import androidx.compose.foundation.Image
@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -33,20 +34,21 @@ fun NESView(
 ) {
     val frame by engine.frame.collectAsStateWithLifecycle()
     val state by engine.state.collectAsStateWithLifecycle()
-    val focusRequester = FocusRequester()
+    val focusRequester = remember { FocusRequester() }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Box(
-        modifier = modifier
-            .background(Color.Black)
-            .focusRequester(focusRequester)
-            .focusable()
-            .onKeyEvent { event ->
-                val button = event.nativeKeyEvent.toNESButton() ?: return@onKeyEvent false
-                engine.setButton(button, event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN)
-                true
-            },
+        modifier =
+            modifier
+                .background(Color.Black)
+                .focusRequester(focusRequester)
+                .focusable()
+                .onKeyEvent { event ->
+                    val button = event.nativeKeyEvent.toNESButton() ?: return@onKeyEvent false
+                    engine.setButton(button, event.nativeKeyEvent.action == KeyEvent.ACTION_DOWN)
+                    true
+                },
         contentAlignment = Alignment.Center,
     ) {
         frame?.let {
@@ -66,24 +68,26 @@ fun NESView(
         if (showsControls) {
             NESControls(
                 engine = engine,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxSize()
-                    .wrapContentSize(Alignment.BottomCenter)
-                    .padding(20.dp),
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxSize()
+                        .wrapContentSize(Alignment.BottomCenter)
+                        .padding(20.dp),
             )
         }
     }
 }
 
-private fun KeyEvent.toNESButton(): NESButton? = when (keyCode) {
-    KeyEvent.KEYCODE_DPAD_UP -> NESButton.Up
-    KeyEvent.KEYCODE_DPAD_DOWN -> NESButton.Down
-    KeyEvent.KEYCODE_DPAD_LEFT -> NESButton.Left
-    KeyEvent.KEYCODE_DPAD_RIGHT -> NESButton.Right
-    KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_X -> NESButton.A
-    KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_Z -> NESButton.B
-    KeyEvent.KEYCODE_BUTTON_START, KeyEvent.KEYCODE_ENTER -> NESButton.Start
-    KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_SPACE -> NESButton.Select
-    else -> null
-}
+private fun KeyEvent.toNESButton(): NESButton? =
+    when (keyCode) {
+        KeyEvent.KEYCODE_DPAD_UP -> NESButton.Up
+        KeyEvent.KEYCODE_DPAD_DOWN -> NESButton.Down
+        KeyEvent.KEYCODE_DPAD_LEFT -> NESButton.Left
+        KeyEvent.KEYCODE_DPAD_RIGHT -> NESButton.Right
+        KeyEvent.KEYCODE_BUTTON_A, KeyEvent.KEYCODE_X -> NESButton.A
+        KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_Z -> NESButton.B
+        KeyEvent.KEYCODE_BUTTON_START, KeyEvent.KEYCODE_ENTER -> NESButton.Start
+        KeyEvent.KEYCODE_BUTTON_SELECT, KeyEvent.KEYCODE_SPACE -> NESButton.Select
+        else -> null
+    }

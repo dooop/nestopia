@@ -13,7 +13,7 @@ public final class NESEngine: ObservableObject {
 
     public let configuration: NESConfiguration
 
-    private let queue = DispatchQueue(label: "org.nestopia.swift.engine", qos: .userInteractive)
+    private let queue = DispatchQueue(label: "nestopia.swift.engine", qos: .userInteractive)
     private var core: OpaquePointer?
     private var timer: DispatchSourceTimer?
     private var audio: NESAudioOutput?
@@ -155,19 +155,19 @@ public final class NESEngine: ObservableObject {
         let byteCount = Int(nes_engine_video_pixel_count()) * MemoryLayout<UInt32>.size
         let data = Data(bytes: pixels, count: byteCount)
         guard let provider = CGDataProvider(data: data as CFData),
-              let image = CGImage(
-                  width: 256,
-                  height: 240,
-                  bitsPerComponent: 8,
-                  bitsPerPixel: 32,
-                  bytesPerRow: 256 * 4,
-                  space: CGColorSpaceCreateDeviceRGB(),
-                  bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
-                  provider: provider,
-                  decode: nil,
-                  shouldInterpolate: false,
-                  intent: .defaultIntent
-              )
+            let image = CGImage(
+                width: 256,
+                height: 240,
+                bitsPerComponent: 8,
+                bitsPerPixel: 32,
+                bytesPerRow: 256 * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.noneSkipLast.rawValue),
+                provider: provider,
+                decode: nil,
+                shouldInterpolate: false,
+                intent: .defaultIntent
+            )
         else { return }
         DispatchQueue.main.async { [weak self] in self?.frame = image }
     }
@@ -183,7 +183,8 @@ public final class NESEngine: ObservableObject {
             ).first!
             baseDirectory = applicationSupport.appendingPathComponent("NES/Saves", isDirectory: true)
         }
-        return baseDirectory
+        return
+            baseDirectory
             .appendingPathComponent(romURL.deletingPathExtension().lastPathComponent)
             .appendingPathExtension("sav")
     }

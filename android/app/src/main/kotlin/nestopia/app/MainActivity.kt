@@ -1,4 +1,4 @@
-package org.nestopia.sample
+package nestopia.app
 
 import android.content.Intent
 import android.net.Uri
@@ -19,8 +19,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import org.nestopia.nes.NES
-import org.nestopia.nes.NESConfiguration
+import nestopia.NES
+import nestopia.NESConfiguration
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -29,16 +29,17 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 var romURI by remember { mutableStateOf<Uri?>(intent?.data) }
-                val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-                    if (uri != null) {
-                        try {
-                            contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-                        } catch (_: SecurityException) {
-                            // Some document providers grant access only for this process.
+                val picker =
+                    rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+                        if (uri != null) {
+                            try {
+                                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                            } catch (_: SecurityException) {
+                                // Some document providers grant access only for this process.
+                            }
+                            romURI = uri
                         }
-                        romURI = uri
                     }
-                }
 
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     val selectedROM = romURI

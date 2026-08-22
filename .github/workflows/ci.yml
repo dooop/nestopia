@@ -1,0 +1,195 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  XCODE_VERSION: "16.4"
+  NDK_VERSION: "29.0.14206865"
+
+jobs:
+  changes:
+    name: Detect engine changes
+    runs-on: ubuntu-latest
+    outputs:
+      engine: ${{ steps.filter.outputs.engine }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Check whether source builds are needed
+        id: filter
+        run: |
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "engine=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          CHANGED="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
+          echo "$CHANGED"
+          if echo "$CHANGED" | grep -qE '^(Package\.swift|nestopia$|swift/Sources/NESCoreBridge/|scripts/(build-engine-slice|make-engine-xcframework)\.sh|\.gitmodules)'; then
+            echo "engine=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "engine=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  lint-swift:
+    name: Lint (Swift)
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+      - name: Run swift-format
+        run: swift format lint --recursive --strict swift/Sources swift/Tests Package.swift
+
+  lint-kotlin:
+    name: Lint (Kotlin)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Run ktlint
+        run: ./gradlew --no-daemon ktlintCheck
+
+  build-source:
+    name: Source build (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.engine == 'true'
+    runs-on: macos-15
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            key: macos
+            destination: "generic/platform=macOS"
+          - name: iOS
+            key: ios
+            destination: "generic/platform=iOS"
+          - name: tvOS
+            key: tvos
+            destination: "generic/platform=tvOS"
+    env:
+      NES_BUILD_FROM_SOURCE: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+      - name: Build and test macOS
+        if: matrix.key == 'macos'
+        run: swift build && swift test
+      - name: Build Apple platform
+        if: matrix.key != 'macos'
+        run: |
+          xcodebuild build \
+            -scheme nes \
+            -destination "${{ matrix.destination }}" \
+            -derivedDataPath ".build/source-${{ matrix.key }}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+
+  build-binary:
+    name: Binary build (${{ matrix.name }})
+    runs-on: macos-15
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            key: macos
+            destination: "generic/platform=macOS"
+          - name: iOS
+            key: ios
+            destination: "generic/platform=iOS"
+          - name: tvOS
+            key: tvos
+            destination: "generic/platform=tvOS"
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+      - name: Check that an engine release is referenced
+        id: guard
+        run: |
+          if grep -q 'engineChecksum = "0\{64\}"' Package.swift; then
+            echo "::notice::No prebuilt CNESCore release is referenced yet."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Build against precompiled CNESCore
+        if: steps.guard.outputs.ready == 'true'
+        run: |
+          xcodebuild build \
+            -scheme nes \
+            -destination "${{ matrix.destination }}" \
+            -derivedDataPath ".build/binary-${{ matrix.key }}" \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
+      - name: Test binary mode
+        if: steps.guard.outputs.ready == 'true' && matrix.key == 'macos'
+        run: swift test
+
+  build-android:
+    name: Build (Android)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      NES_ABIS: "arm64-v8a"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: android-actions/setup-android@v4
+      - name: Install NDK
+        run: |
+          sdkmanager --install "ndk;${NDK_VERSION}"
+          echo "ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Build library and project-linked sample
+        run: |
+          ./gradlew --no-daemon :nes:assembleRelease :app:assembleLocalDebug \
+            -Pnes.abis="${NES_ABIS}"
+      - name: Build sample from the prebuilt AAR
+        run: |
+          ./gradlew --no-daemon :app:assembleLocalRelease \
+            -Pnes.releaseAar="${GITHUB_WORKSPACE}/android/nes/build/outputs/aar/nes-release.aar" \
+            -Pnes.abis="${NES_ABIS}"
+      - name: Run Android lint
+        run: ./gradlew --no-daemon :nes:lintDebug :app:lintLocalDebug -Pnes.abis="${NES_ABIS}"
+      - name: Verify artifacts
+        run: |
+          scripts/verify-release-artifacts.sh \
+            android/nes/build/outputs/aar/nes-release.aar \
+            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk \
+            "${NES_ABIS}"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nes-android-artifacts
+          path: |
+            android/nes/build/outputs/aar/nes-release.aar
+            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk
+          if-no-files-found: error

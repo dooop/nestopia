@@ -18,20 +18,20 @@ std::string toString(JNIEnv *env, jstring value)
 }
 
 extern "C" JNIEXPORT jlong JNICALL
-Java_org_nestopia_nes_internal_NativeNES_create(JNIEnv *env, jobject, jstring databasePath)
+Java_nestopia_internal_NativeNES_create(JNIEnv *env, jobject, jstring databasePath)
 {
     const std::string database = toString(env, databasePath);
     return reinterpret_cast<jlong>(nes_engine_create(database.c_str()));
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_org_nestopia_nes_internal_NativeNES_destroy(JNIEnv *, jobject, jlong handle)
+Java_nestopia_internal_NativeNES_destroy(JNIEnv *, jobject, jlong handle)
 {
     nes_engine_destroy(fromHandle(handle));
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_org_nestopia_nes_internal_NativeNES_loadROM(JNIEnv *env, jobject, jlong handle, jstring romPath, jstring savePath)
+Java_nestopia_internal_NativeNES_loadROM(JNIEnv *env, jobject, jlong handle, jstring romPath, jstring savePath)
 {
     const std::string rom = toString(env, romPath);
     const std::string save = toString(env, savePath);
@@ -39,19 +39,19 @@ Java_org_nestopia_nes_internal_NativeNES_loadROM(JNIEnv *env, jobject, jlong han
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_org_nestopia_nes_internal_NativeNES_runFrame(JNIEnv *, jobject, jlong handle)
+Java_nestopia_internal_NativeNES_runFrame(JNIEnv *, jobject, jlong handle)
 {
     return nes_engine_run_frame(fromHandle(handle));
 }
 
 extern "C" JNIEXPORT jdouble JNICALL
-Java_org_nestopia_nes_internal_NativeNES_frameDuration(JNIEnv *, jobject, jlong handle)
+Java_nestopia_internal_NativeNES_frameDuration(JNIEnv *, jobject, jlong handle)
 {
     return nes_engine_frame_duration(fromHandle(handle));
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_org_nestopia_nes_internal_NativeNES_copyVideo(JNIEnv *env, jobject, jlong handle, jintArray destination)
+Java_nestopia_internal_NativeNES_copyVideo(JNIEnv *env, jobject, jlong handle, jintArray destination)
 {
     const uint32_t *source = nes_engine_video_buffer(fromHandle(handle));
     if (source == nullptr || destination == nullptr) return;
@@ -69,7 +69,7 @@ Java_org_nestopia_nes_internal_NativeNES_copyVideo(JNIEnv *env, jobject, jlong h
 }
 
 extern "C" JNIEXPORT jint JNICALL
-Java_org_nestopia_nes_internal_NativeNES_copyAudio(JNIEnv *env, jobject, jlong handle, jshortArray destination)
+Java_nestopia_internal_NativeNES_copyAudio(JNIEnv *env, jobject, jlong handle, jshortArray destination)
 {
     const int16_t *source = nes_engine_audio_buffer(fromHandle(handle));
     const jsize count = static_cast<jsize>(nes_engine_audio_sample_count(fromHandle(handle)));
@@ -81,33 +81,33 @@ Java_org_nestopia_nes_internal_NativeNES_copyAudio(JNIEnv *env, jobject, jlong h
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_org_nestopia_nes_internal_NativeNES_setButton(JNIEnv *, jobject, jlong handle, jint player, jint button, jboolean pressed)
+Java_nestopia_internal_NativeNES_setButton(JNIEnv *, jobject, jlong handle, jint player, jint button, jboolean pressed)
 {
     nes_engine_set_button(fromHandle(handle), static_cast<unsigned>(player), static_cast<NESButton>(button), pressed);
 }
 
 extern "C" JNIEXPORT void JNICALL
-Java_org_nestopia_nes_internal_NativeNES_reset(JNIEnv *, jobject, jlong handle, jboolean hardReset)
+Java_nestopia_internal_NativeNES_reset(JNIEnv *, jobject, jlong handle, jboolean hardReset)
 {
     nes_engine_reset(fromHandle(handle), hardReset);
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_org_nestopia_nes_internal_NativeNES_saveState(JNIEnv *env, jobject, jlong handle, jstring path)
+Java_nestopia_internal_NativeNES_saveState(JNIEnv *env, jobject, jlong handle, jstring path)
 {
     const std::string value = toString(env, path);
     return nes_engine_save_state(fromHandle(handle), value.c_str());
 }
 
 extern "C" JNIEXPORT jboolean JNICALL
-Java_org_nestopia_nes_internal_NativeNES_loadState(JNIEnv *env, jobject, jlong handle, jstring path)
+Java_nestopia_internal_NativeNES_loadState(JNIEnv *env, jobject, jlong handle, jstring path)
 {
     const std::string value = toString(env, path);
     return nes_engine_load_state(fromHandle(handle), value.c_str());
 }
 
 extern "C" JNIEXPORT jstring JNICALL
-Java_org_nestopia_nes_internal_NativeNES_lastError(JNIEnv *env, jobject, jlong handle)
+Java_nestopia_internal_NativeNES_lastError(JNIEnv *env, jobject, jlong handle)
 {
     return env->NewStringUTF(nes_engine_last_error(fromHandle(handle)));
 }

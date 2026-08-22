@@ -1,11 +1,12 @@
 #!/bin/sh
 set -eu
 
-swift package dump-package >/dev/null
-swift build
+NES_BUILD_FROM_SOURCE=1 swift package dump-package >/dev/null
+NES_BUILD_FROM_SOURCE=1 swift build
+NES_BUILD_FROM_SOURCE=1 swift test
 
 if [ "${ANDROID_SDK_ROOT:-}" != "" ] || [ -f local.properties ]; then
-    ./gradlew :nes:assembleDebug :app:assembleDebug
+    ./gradlew :nes:assembleDebug :app:assembleLocalDebug :nes:lintDebug :app:lintLocalDebug
 else
     echo "Android SDK not configured; skipped Gradle validation."
 fi

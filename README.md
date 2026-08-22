@@ -39,9 +39,18 @@ Build from the repository root:
 
 ```sh
 git submodule update --init
-swift build
-xcodebuild -scheme nes -destination 'generic/platform=iOS' build
+NES_BUILD_FROM_SOURCE=1 swift build
+NES_BUILD_FROM_SOURCE=1 xcodebuild -scheme nes -destination 'generic/platform=iOS' build
 ```
+
+### Apple package modes
+
+The public `NES` Swift target is always compiled from source. Its `CNESCore` dependency can be consumed in two modes while keeping the same module graph:
+
+- **Binary mode (consumer default after the first engine release):** SwiftPM downloads `CNESCore.xcframework.zip` from the release pinned in `Package.swift`. The Nestopia submodule is not required.
+- **Source mode:** set `NES_BUILD_FROM_SOURCE=1` to compile `CNESCore` from the `nestopia/` submodule. Use this for engine and bridge development.
+
+The manifest falls back to source mode while it still contains the placeholder binary checksum. Run `swift package reset` after switching modes in an existing checkout. Release automation builds iOS, iOS Simulator, tvOS, tvOS Simulator, and universal macOS slices, validates the resulting local XCFramework, and then updates the release URL and checksum through a pull request.
 
 `NES` starts on appearance and stops on disappearance. `NESView(engine:)` and `NESEngine` are public for hosts that need explicit lifecycle control, state slots, or custom controls. Touch controls are included. Apple game controllers and keyboards are mapped automatically (D-pad, A/B, Start/Select).
 
@@ -60,8 +69,27 @@ Build the Compose AAR and sample APK:
 
 ```sh
 ./gradlew :nes:assembleDebug
-./gradlew :app:assembleDebug
+./gradlew :app:assembleLocalDebug
 ```
+
+The Android application id is `nestopia.app` (Android application IDs require at least two
+segments); the library namespace and public Kotlin package are `nestopia`.
+
+### Android package modes
+
+From a source checkout, depend directly on the library project:
+
+```kotlin
+implementation(project(":nes"))
+```
+
+Released AARs are published to GitHub Packages as `io.github.dooop:nes:<version>`. Configure the `https://maven.pkg.github.com/dooop/nes` repository with GitHub Packages credentials, then use:
+
+```kotlin
+implementation("io.github.dooop:nes:<version>")
+```
+
+The sample has `local` and `maven` flavors. `localDebug` consumes the source project, `localRelease` consumes an AAR passed with `-Pnes.releaseAar=...`, and the `maven` variants consume the published package.
 
 The sample uses Android's document picker and declares phone, tablet, gamepad, and Android TV compatibility. Compose touch controls and Android key/gamepad events map to the same native input masks as Apple.
 

@@ -1,19 +1,18 @@
-package org.nestopia.nes
+package nestopia
 
 import android.content.Context
 import android.graphics.Bitmap
 import android.media.AudioAttributes
 import android.media.AudioFormat
-import android.media.AudioManager
 import android.media.AudioTrack
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import nestopia.internal.NativeNES
 import java.io.Closeable
 import java.io.File
 import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import org.nestopia.nes.internal.NativeNES
 
 class NESEngine(
     context: Context,
@@ -28,6 +27,7 @@ class NESEngine(
     val frame: StateFlow<Bitmap?> = _frame.asStateFlow()
 
     @Volatile private var paused = false
+
     @Volatile private var stopped = false
     private var handle = 0L
     private var audioTrack: AudioTrack? = null
@@ -58,7 +58,11 @@ class NESEngine(
         _state.value = NESState.Running
     }
 
-    fun setButton(button: NESButton, pressed: Boolean, player: Int = 0) {
+    fun setButton(
+        button: NESButton,
+        pressed: Boolean,
+        player: Int = 0,
+    ) {
         synchronized(nativeLock) {
             if (handle != 0L) NativeNES.setButton(handle, player, button.mask, pressed)
         }
@@ -70,17 +74,15 @@ class NESEngine(
         }
     }
 
-    fun saveState(file: File): Boolean {
-        return synchronized(nativeLock) {
+    fun saveState(file: File): Boolean =
+        synchronized(nativeLock) {
             handle != 0L && NativeNES.saveState(handle, file.path)
         }
-    }
 
-    fun loadState(file: File): Boolean {
-        return synchronized(nativeLock) {
+    fun loadState(file: File): Boolean =
+        synchronized(nativeLock) {
             handle != 0L && NativeNES.loadState(handle, file.path)
         }
-    }
 
     override fun close() {
         stopped = true
@@ -148,15 +150,16 @@ class NESEngine(
                 nextFrame = System.nanoTime()
                 continue
             }
-            val audioCount = synchronized(nativeLock) {
-                if (stopped || handle == 0L) return
-                if (!NativeNES.runFrame(handle)) {
-                    _state.value = NESState.Failed(NativeNES.lastError(handle))
-                    return
+            val audioCount =
+                synchronized(nativeLock) {
+                    if (stopped || handle == 0L) return
+                    if (!NativeNES.runFrame(handle)) {
+                        _state.value = NESState.Failed(NativeNES.lastError(handle))
+                        return
+                    }
+                    NativeNES.copyVideo(handle, pixels)
+                    NativeNES.copyAudio(handle, samples)
                 }
-                NativeNES.copyVideo(handle, pixels)
-                NativeNES.copyAudio(handle, samples)
-            }
             _frame.value = Bitmap.createBitmap(pixels, WIDTH, HEIGHT, Bitmap.Config.ARGB_8888)
             if (audioCount > 0) {
                 synchronized(nativeLock) {
@@ -182,26 +185,28 @@ class NESEngine(
     }
 
     private fun createAudioTrack(): AudioTrack {
-        val minimum = AudioTrack.getMinBufferSize(
-            SAMPLE_RATE,
-            AudioFormat.CHANNEL_OUT_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-        )
-        return AudioTrack.Builder()
+        val minimum =
+            AudioTrack.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_OUT_MONO,
+                AudioFormat.ENCODING_PCM_16BIT,
+            )
+        return AudioTrack
+            .Builder()
             .setAudioAttributes(
-                AudioAttributes.Builder()
+                AudioAttributes
+                    .Builder()
                     .setUsage(AudioAttributes.USAGE_GAME)
                     .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                     .build(),
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
+            ).setAudioFormat(
+                AudioFormat
+                    .Builder()
                     .setSampleRate(SAMPLE_RATE)
                     .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
                     .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                     .build(),
-            )
-            .setBufferSizeInBytes(maxOf(minimum, MAX_AUDIO_SAMPLES * 4))
+            ).setBufferSizeInBytes(maxOf(minimum, MAX_AUDIO_SAMPLES * 4))
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
     }

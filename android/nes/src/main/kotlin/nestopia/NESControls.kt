@@ -1,4 +1,4 @@
-package org.nestopia.nes
+package nestopia
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -58,18 +58,19 @@ private fun Control(
     size: Int = 52,
 ) {
     Box(
-        modifier = Modifier
-            .size(size.dp)
-            .background(Color.Black.copy(alpha = 0.72f), CircleShape)
-            .pointerInput(button) {
-                detectTapGestures(
-                    onPress = {
-                        engine.setButton(button, true)
-                        tryAwaitRelease()
-                        engine.setButton(button, false)
-                    },
-                )
-            },
+        modifier =
+            Modifier
+                .size(size.dp)
+                .background(Color.Black.copy(alpha = 0.72f), CircleShape)
+                .pointerInput(button) {
+                    detectTapGestures(
+                        onPress = {
+                            engine.setButton(button, true)
+                            tryAwaitRelease()
+                            engine.setButton(button, false)
+                        },
+                    )
+                },
         contentAlignment = Alignment.Center,
     ) {
         Text(label, color = Color.White, fontWeight = FontWeight.Bold)

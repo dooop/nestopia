@@ -28,31 +28,43 @@ public struct NESControls: View {
 
     private var dPad: some View {
         Grid(horizontalSpacing: 2, verticalSpacing: 2) {
-            GridRow { Color.clear.frame(width: 50, height: 50); control("▲", .up); Color.clear.frame(width: 50, height: 50) }
-            GridRow { control("◀", .left); Color.black.opacity(0.75).frame(width: 50, height: 50); control("▶", .right) }
-            GridRow { Color.clear.frame(width: 50, height: 50); control("▼", .down); Color.clear.frame(width: 50, height: 50) }
+            GridRow {
+                Color.clear.frame(width: 50, height: 50)
+                control("▲", .up)
+                Color.clear.frame(width: 50, height: 50)
+            }
+            GridRow {
+                control("◀", .left)
+                Color.black.opacity(0.75).frame(width: 50, height: 50)
+                control("▶", .right)
+            }
+            GridRow {
+                Color.clear.frame(width: 50, height: 50)
+                control("▼", .down)
+                Color.clear.frame(width: 50, height: 50)
+            }
         }
     }
 
     @ViewBuilder
     private func control(_ label: String, _ button: NESControllerButton, diameter: CGFloat = 50) -> some View {
         #if os(tvOS)
-        Button {
-            engine.setButton(button, pressed: true)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                engine.setButton(button, pressed: false)
+            Button {
+                engine.setButton(button, pressed: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    engine.setButton(button, pressed: false)
+                }
+            } label: {
+                controlLabel(label, diameter: diameter)
             }
-        } label: {
-            controlLabel(label, diameter: diameter)
-        }
-        .buttonStyle(.plain)
+            .buttonStyle(.plain)
         #else
-        controlLabel(label, diameter: diameter)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in engine.setButton(button, pressed: true) }
-                    .onEnded { _ in engine.setButton(button, pressed: false) }
-            )
+            controlLabel(label, diameter: diameter)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in engine.setButton(button, pressed: true) }
+                        .onEnded { _ in engine.setButton(button, pressed: false) }
+                )
         #endif
     }
 

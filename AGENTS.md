@@ -54,11 +54,10 @@ Run the narrowest relevant checks while iterating, then the full affected platfo
 - Apple tests: `swift test`
 - iOS: `xcodebuild -scheme nes -destination 'generic/platform=iOS' build`
 - Android library: `./gradlew :nes:assembleDebug`
-- Android sample: `./gradlew :app:assembleDebug`
-- Android lint: `./gradlew :nes:lintDebug :app:lintDebug`
+- Android sample from source: `./gradlew :app:assembleLocalDebug`
+- Android sample from AAR: `./gradlew :app:assembleLocalRelease -Pnes.releaseAar=/absolute/path/to/nes-release.aar`
+- Android lint: `./gradlew :nes:lintDebug :app:lintLocalDebug`
 - Combined local validation: `./scripts/validate.sh`
-
-Android currently sets `abortOnError = false`; therefore a successful Gradle exit does not prove lint is clean. Inspect `android/*/build/reports/lint-results-debug.txt` and report every error.
 
 After validation, run `git status --short` and ensure only intended source/configuration files changed. Generated output must remain ignored and untracked.
 

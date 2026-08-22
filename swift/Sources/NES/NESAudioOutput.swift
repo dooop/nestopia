@@ -27,11 +27,11 @@ final class NESAudioOutput {
 
     func enqueue(samples: UnsafePointer<Int16>, count: Int) {
         guard count > 0,
-              let buffer = AVAudioPCMBuffer(
-                  pcmFormat: format,
-                  frameCapacity: AVAudioFrameCount(count)
-              ),
-              let destination = buffer.int16ChannelData?[0]
+            let buffer = AVAudioPCMBuffer(
+                pcmFormat: format,
+                frameCapacity: AVAudioFrameCount(count)
+            ),
+            let destination = buffer.int16ChannelData?[0]
         else { return }
 
         buffer.frameLength = AVAudioFrameCount(count)

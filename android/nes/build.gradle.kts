@@ -1,16 +1,28 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.ktlint)
+    `maven-publish`
+}
+
+group = "io.github.dooop"
+version = providers.gradleProperty("nes.version").getOrElse("0.0.0-SNAPSHOT")
+
+ktlint {
+    android.set(true)
+    outputToConsole.set(true)
 }
 
 val configuredAbis =
-    providers.gradleProperty("nes.abis").getOrElse("arm64-v8a,x86_64")
+    providers
+        .gradleProperty("nes.abis")
+        .getOrElse("arm64-v8a,x86_64")
         .split(",")
         .map(String::trim)
         .filter(String::isNotEmpty)
 
 android {
-    namespace = "org.nestopia.nes"
+    namespace = "nestopia"
     compileSdk { version = release(37) }
     enableKotlin = true
     ndkVersion = providers.gradleProperty("nes.ndkVersion").get()
@@ -38,7 +50,12 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    lint { abortOnError = false }
+    lint { abortOnError = true }
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
+    }
 }
 
 dependencies {
@@ -49,4 +66,55 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                from(components["release"])
+                artifactId = "nes"
+                pom {
+                    name.set("nestopia")
+                    description.set("SwiftUI and Android Compose wrappers around Nestopia")
+                    url.set("https://github.com/dooop/nes")
+                    licenses {
+                        license {
+                            name.set("GNU General Public License v2.0 or later")
+                            url.set("https://www.gnu.org/licenses/old-licenses/gpl-2.0.html")
+                            distribution.set("repo")
+                        }
+                    }
+                    scm {
+                        url.set("https://github.com/dooop/nes")
+                        connection.set("scm:git:https://github.com/dooop/nes.git")
+                        developerConnection.set("scm:git:ssh://git@github.com/dooop/nes.git")
+                    }
+                }
+            }
+        }
+        repositories {
+            maven {
+                name = "GitHubPackages"
+                url =
+                    uri(
+                        "https://maven.pkg.github.com/${providers.gradleProperty(
+                            "nes.githubRepository",
+                        ).getOrElse("dooop/nes")}",
+                    )
+                credentials {
+                    username =
+                        providers
+                            .gradleProperty("gpr.user")
+                            .orElse(providers.environmentVariable("GITHUB_ACTOR"))
+                            .orNull
+                    password =
+                        providers
+                            .gradleProperty("gpr.key")
+                            .orElse(providers.environmentVariable("GITHUB_TOKEN"))
+                            .orNull
+                }
+            }
+        }
+    }
 }

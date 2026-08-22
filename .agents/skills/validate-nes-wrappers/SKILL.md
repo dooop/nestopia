@@ -23,15 +23,15 @@ swift package dump-package >/dev/null
 swift build
 swift test
 xcodebuild -scheme nes -destination 'generic/platform=iOS' build
-./gradlew :nes:assembleDebug :app:assembleDebug
-./gradlew :nes:lintDebug :app:lintDebug
+./gradlew :nes:assembleDebug :app:assembleLocalDebug
+./gradlew :nes:lintDebug :app:lintLocalDebug
 ```
 
 Use `./scripts/validate.sh` for the repository's shorter combined entry point, but add `swift test`, iOS, and Android lint when their toolchains are available.
 
 ## Interpret results
 
-- Inspect `android/nes/build/reports/lint-results-debug.txt` and `android/app/build/reports/lint-results-debug.txt` even when Gradle exits zero; `abortOnError = false` masks lint errors from the exit status.
+- Inspect the generated library and local-sample lint reports and treat every error as a failed validation.
 - Distinguish test count from XCTest's compatibility summary when Swift Testing is in use.
 - Report skipped checks with the missing toolchain or environment requirement.
 - Do not dismiss warnings that affect correctness, packaging, ABI support, accessibility, or lifecycle behavior.
