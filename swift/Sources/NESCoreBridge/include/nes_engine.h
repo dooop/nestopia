@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #ifndef NES_ENGINE_H
 #define NES_ENGINE_H
 

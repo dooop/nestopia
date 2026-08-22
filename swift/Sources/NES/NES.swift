@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 import SwiftUI
 
 /// High-level SwiftUI host for one Nestopia ROM.

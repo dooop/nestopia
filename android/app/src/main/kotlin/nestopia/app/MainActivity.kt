@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package nestopia.app
 
 import android.content.Intent
@@ -45,7 +48,7 @@ class MainActivity : ComponentActivity() {
                     val selectedROM = romURI
                     if (selectedROM == null) {
                         Button(onClick = { picker.launch(arrayOf("application/octet-stream", "*/*")) }) {
-                            Text("NES-ROM öffnen")
+                            Text("Spieldatei öffnen")
                         }
                     } else {
                         NES(

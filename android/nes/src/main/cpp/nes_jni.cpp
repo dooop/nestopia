@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #include <jni.h>
 #include <cstdint>
 #include <string>

@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 import SwiftUI
 
 public struct NESView: View {
@@ -74,7 +77,9 @@ public struct NESView: View {
             )
             .foregroundStyle(.white)
         default:
-            Text("NES").font(.largeTitle.bold()).foregroundStyle(.secondary)
+            Text(controllerConfiguration.resolvedControllerLabel)
+                .font(.largeTitle.bold())
+                .foregroundStyle(.secondary)
         }
     }
 }

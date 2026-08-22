@@ -37,15 +37,6 @@ done
 rm -rf "$OUTPUT_DIR/CNESCore.xcframework" "$OUTPUT_DIR/CNESCore.xcframework.zip"
 xcodebuild -create-xcframework "${ARGS[@]}" -output "$OUTPUT_DIR/CNESCore.xcframework"
 
-(
-    cd "$OUTPUT_DIR"
-    ditto -c -k --sequesterRsrc --keepParent CNESCore.xcframework CNESCore.xcframework.zip
-)
-
-export NES_BUILD_FROM_SOURCE=1
-swift package --package-path "$REPO_ROOT" compute-checksum \
-    "$OUTPUT_DIR/CNESCore.xcframework.zip" > "$OUTPUT_DIR/checksum.txt"
-
 {
     echo "nes prebuilt CNESCore"
     echo
@@ -56,6 +47,19 @@ swift package --package-path "$REPO_ROOT" compute-checksum \
     echo "Nestopia and this linked wrapper are distributed under GPL-2.0-or-later."
     echo "Corresponding source consists of the upstream commit and wrapper commit above."
 } > "$OUTPUT_DIR/SOURCES.txt"
+
+cp "$REPO_ROOT/LICENSE" "$OUTPUT_DIR/CNESCore.xcframework/LICENSE"
+cp "$OUTPUT_DIR/SOURCES.txt" "$OUTPUT_DIR/CNESCore.xcframework/SOURCES.txt"
+
+(
+    cd "$OUTPUT_DIR"
+    ditto -c -k --sequesterRsrc --keepParent CNESCore.xcframework CNESCore.xcframework.zip
+)
+unzip -p "$OUTPUT_DIR/CNESCore.xcframework.zip" CNESCore.xcframework/LICENSE | cmp "$REPO_ROOT/LICENSE" -
+
+export NES_BUILD_FROM_SOURCE=1
+swift package --package-path "$REPO_ROOT" compute-checksum \
+    "$OUTPUT_DIR/CNESCore.xcframework.zip" > "$OUTPUT_DIR/checksum.txt"
 
 echo "Created CNESCore.xcframework.zip"
 echo "Checksum: $(cat "$OUTPUT_DIR/checksum.txt")"

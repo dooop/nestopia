@@ -1,4 +1,13 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 import SwiftUI
+
+#if os(iOS)
+    import UIKit
+#elseif os(macOS)
+    import AppKit
+#endif
 
 public struct NESControls: View {
     private let engine: NESEngine
@@ -25,7 +34,7 @@ public struct NESControls: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("NES controller")
+        .accessibilityLabel("Game controller")
     }
 
     private func resolvedMode(for size: CGSize) -> NESControllerPresentationMode {
@@ -38,12 +47,21 @@ public struct NESControls: View {
             dPad(metrics: metrics, palette: palette, opacity: 1)
             Spacer(minLength: metrics.sectionSpacing)
             VStack(spacing: metrics.utilitySpacing) {
-                Text(configuration.theme == .famicom ? "FAMILY COMPUTER" : "NES")
-                    .font(.system(size: 10, weight: .black, design: .rounded))
-                    .foregroundStyle(palette.bodyLabel)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if !configuration.resolvedControllerLabel.isEmpty {
+                    Text(configuration.resolvedControllerLabel)
+                        .font(.system(size: 10, weight: .black, design: .rounded))
+                        .foregroundStyle(palette.bodyLabel)
+                        .lineLimit(1)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
                 utilityButtons(metrics: metrics, palette: palette, opacity: 1)
             }
+            .padding(.horizontal, metrics.utilitySpacing)
+            .padding(.vertical, metrics.utilitySpacing)
+            .background(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .fill(palette.panel.opacity(configuration.theme == .system ? 0.12 : 0.94))
+            )
             Spacer(minLength: metrics.sectionSpacing)
             actionButtons(metrics: metrics, palette: palette, opacity: 1)
         }
@@ -68,7 +86,7 @@ public struct NESControls: View {
     }
 
     private func controllerBody(palette: Palette) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 24, style: .continuous)
+        let shape = controllerBodyShape
         return ZStack {
             if configuration.theme == .system {
                 #if compiler(>=6.2)
@@ -91,6 +109,14 @@ public struct NESControls: View {
         .shadow(color: .black.opacity(0.24), radius: 14, y: 8)
     }
 
+    private var controllerBodyShape: AnyShape {
+        switch configuration.theme {
+        case .system: AnyShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        case .nes: AnyShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        case .famicom: AnyShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+    }
+
     private func dPad(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
         Grid(horizontalSpacing: 0, verticalSpacing: 0) {
             GridRow {
@@ -104,8 +130,14 @@ public struct NESControls: View {
                 control(
                     "◀", .left, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
                     color: palette.dPad, palette: palette, opacity: opacity)
-                Rectangle().fill(palette.dPad.opacity(opacity)).frame(
-                    width: metrics.direction, height: metrics.direction)
+                ZStack {
+                    Rectangle().fill(palette.dPad.opacity(opacity))
+                    Circle()
+                        .fill(.black.opacity(0.16 * opacity))
+                        .overlay(Circle().stroke(.white.opacity(0.08 * opacity), lineWidth: 1))
+                        .frame(width: metrics.direction * 0.54, height: metrics.direction * 0.54)
+                }
+                .frame(width: metrics.direction, height: metrics.direction)
                 control(
                     "▶", .right, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
                     color: palette.dPad, palette: palette, opacity: opacity)
@@ -157,12 +189,12 @@ public struct NESControls: View {
             }
             .buttonStyle(.plain)
         #else
-            controlLabel(label, size: size, shape: shape, color: color, palette: palette, opacity: opacity)
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { _ in engine.setButton(button, pressed: true) }
-                        .onEnded { _ in engine.setButton(button, pressed: false) }
-                )
+            PressableControl(
+                hapticsEnabled: configuration.hapticsEnabled,
+                onPressedChange: { engine.setButton(button, pressed: $0) }
+            ) {
+                controlLabel(label, size: size, shape: shape, color: color, palette: palette, opacity: opacity)
+            }
         #endif
     }
 
@@ -236,24 +268,28 @@ private struct Palette {
     let utility: Color
     let labels: Color
     let bodyLabel: Color
+    let panel: Color
 
     init(theme: NESControllerTheme, overrides: NESControllerColorOverrides) {
-        let defaults: (Color, Color, Color, Color, Color, Color)
+        let defaults: (Color, Color, Color, Color, Color, Color, Color)
         switch theme {
         case .system:
             defaults = (
-                .primary.opacity(0.08), .primary.opacity(0.68), .accentColor, .primary.opacity(0.55), .white, .primary
+                .primary.opacity(0.08), .primary.opacity(0.68), .accentColor, .primary.opacity(0.55), .white, .primary,
+                .primary.opacity(0.12)
             )
         case .nes:
             defaults = (
                 Color(red: 0.70, green: 0.70, blue: 0.68), Color(white: 0.10),
-                Color(red: 0.67, green: 0.05, blue: 0.12), Color(white: 0.16), .white, Color(white: 0.15)
+                Color(red: 0.67, green: 0.05, blue: 0.12), Color(white: 0.16), .white, Color(white: 0.15),
+                Color(white: 0.12)
             )
         case .famicom:
             defaults = (
                 Color(red: 0.91, green: 0.86, blue: 0.69), Color(red: 0.34, green: 0.04, blue: 0.09),
                 Color(red: 0.63, green: 0.03, blue: 0.08), Color(red: 0.43, green: 0.05, blue: 0.10),
-                Color(red: 0.98, green: 0.91, blue: 0.72), Color(red: 0.40, green: 0.04, blue: 0.09)
+                Color(red: 0.98, green: 0.91, blue: 0.72), Color(red: 0.40, green: 0.04, blue: 0.09),
+                Color(red: 0.34, green: 0.04, blue: 0.09)
             )
         }
         body = overrides.body ?? defaults.0
@@ -262,7 +298,47 @@ private struct Palette {
         utility = overrides.utilityButtons ?? defaults.3
         labels = overrides.labels ?? defaults.4
         bodyLabel = overrides.bodyLabel ?? defaults.5
+        panel = defaults.6
     }
+}
+
+private struct PressableControl<Content: View>: View {
+    let hapticsEnabled: Bool
+    let onPressedChange: (Bool) -> Void
+    @ViewBuilder let content: () -> Content
+    @State private var isPressed = false
+
+    var body: some View {
+        content()
+            .scaleEffect(isPressed ? 0.92 : 1)
+            .brightness(isPressed ? -0.12 : 0)
+            .animation(.easeOut(duration: 0.08), value: isPressed)
+            .gesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        guard !isPressed else { return }
+                        isPressed = true
+                        onPressedChange(true)
+                        if hapticsEnabled { performControllerHaptic() }
+                    }
+                    .onEnded { _ in release() }
+            )
+            .onDisappear { release() }
+    }
+
+    private func release() {
+        guard isPressed else { return }
+        isPressed = false
+        onPressedChange(false)
+    }
+}
+
+private func performControllerHaptic() {
+    #if os(iOS)
+        UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.75)
+    #elseif os(macOS)
+        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+    #endif
 }
 
 private enum ControlShape {

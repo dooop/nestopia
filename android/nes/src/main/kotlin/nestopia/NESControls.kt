@@ -1,5 +1,10 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package nestopia
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -18,12 +23,19 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -66,6 +78,13 @@ private fun GamepadControls(
     metrics: ControllerMetrics,
     palette: ControllerPalette,
 ) {
+    val controllerLabel = rememberControllerLabel(configuration)
+    val bodyShape =
+        when (configuration.theme) {
+            NESControllerTheme.System -> RoundedCornerShape(24.dp)
+            NESControllerTheme.NES -> RoundedCornerShape(18.dp)
+            NESControllerTheme.Famicom -> RoundedCornerShape(12.dp)
+        }
     Row(
         modifier =
             Modifier
@@ -78,24 +97,31 @@ private fun GamepadControls(
                 Modifier
                     .fillMaxWidth()
                     .widthIn(max = 680.dp)
-                    .shadow(14.dp, RoundedCornerShape(24.dp))
-                    .background(palette.body, RoundedCornerShape(24.dp))
-                    .border(1.dp, Color.White.copy(alpha = 0.14f), RoundedCornerShape(24.dp))
+                    .shadow(14.dp, bodyShape)
+                    .background(palette.body, bodyShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.14f), bodyShape)
                     .padding(metrics.bodyPadding),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Bottom,
         ) {
             DPad(engine, configuration, metrics, palette, 1f)
             Column(
-                modifier = Modifier.padding(horizontal = metrics.sectionSpacing),
+                modifier =
+                    Modifier
+                        .padding(horizontal = metrics.sectionSpacing)
+                        .background(palette.panel, RoundedCornerShape(9.dp))
+                        .padding(horizontal = metrics.utilitySpacing, vertical = metrics.utilitySpacing),
                 verticalArrangement = Arrangement.spacedBy(metrics.utilitySpacing),
             ) {
-                Text(
-                    text = if (configuration.theme == NESControllerTheme.Famicom) "FAMILY COMPUTER" else "NES",
-                    color = palette.bodyLabel,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Black,
-                )
+                if (controllerLabel.isNotEmpty()) {
+                    Text(
+                        text = controllerLabel,
+                        color = palette.bodyLabel,
+                        fontSize = 10.sp,
+                        fontWeight = FontWeight.Black,
+                        maxLines = 1,
+                    )
+                }
                 UtilityButtons(engine, configuration, metrics, palette, 1f)
             }
             ActionButtons(engine, configuration, metrics, palette, 1f)
@@ -182,7 +208,10 @@ private fun DPad(
             Box(
                 Modifier
                     .size(metrics.direction)
-                    .background(palette.directionalPad.copy(alpha = palette.directionalPad.alpha * opacity)),
+                    .background(palette.directionalPad.copy(alpha = palette.directionalPad.alpha * opacity))
+                    .padding(metrics.direction * 0.23f)
+                    .background(Color.Black.copy(alpha = 0.16f * opacity), CircleShape)
+                    .border(1.dp, Color.White.copy(alpha = 0.08f * opacity), CircleShape),
             )
             ControllerButton(
                 "▶",
@@ -306,20 +335,40 @@ private fun ControllerButton(
     opacity: Float,
 ) {
     val surface = color.copy(alpha = color.alpha * opacity)
+    val hapticFeedback = LocalHapticFeedback.current
+    var isPressed by remember(button) { mutableStateOf(false) }
+    val pressedScale by
+        animateFloatAsState(
+            targetValue = if (isPressed) 0.92f else 1f,
+            animationSpec = tween(durationMillis = 80),
+            label = "controllerButtonScale",
+        )
     Box(
         modifier =
             Modifier
                 .size(width, height)
-                .shadow(if (configuration.theme == NESControllerTheme.System) 5.dp else 3.dp, shape)
+                .graphicsLayer {
+                    scaleX = pressedScale
+                    scaleY = pressedScale
+                    alpha = if (isPressed) 0.88f else 1f
+                }.shadow(if (configuration.theme == NESControllerTheme.System) 5.dp else 3.dp, shape)
                 .background(surface, shape)
                 .border(1.dp, Color.White.copy(alpha = 0.18f * opacity), shape)
                 .semantics { contentDescription = label }
-                .pointerInput(button) {
+                .pointerInput(button, configuration.hapticsEnabled) {
                     detectTapGestures(
                         onPress = {
+                            isPressed = true
+                            if (configuration.hapticsEnabled) {
+                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            }
                             engine.setButton(button, true)
-                            tryAwaitRelease()
-                            engine.setButton(button, false)
+                            try {
+                                tryAwaitRelease()
+                            } finally {
+                                engine.setButton(button, false)
+                                isPressed = false
+                            }
                         },
                     )
                 },
@@ -365,6 +414,7 @@ private data class ControllerPalette(
     val utilityButtons: Color,
     val labels: Color,
     val bodyLabel: Color,
+    val panel: Color,
 )
 
 @Composable
@@ -379,6 +429,7 @@ private fun controllerPalette(configuration: NESControllerConfiguration): Contro
                     utilityButtons = MaterialTheme.colorScheme.secondary,
                     labels = MaterialTheme.colorScheme.onPrimary,
                     bodyLabel = MaterialTheme.colorScheme.onSurface,
+                    panel = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.08f),
                 )
             NESControllerTheme.NES ->
                 ControllerPalette(
@@ -388,6 +439,7 @@ private fun controllerPalette(configuration: NESControllerConfiguration): Contro
                     Color(0xFF292929),
                     Color.White,
                     Color(0xFF262626),
+                    Color(0xFF1F1F1F),
                 )
             NESControllerTheme.Famicom ->
                 ControllerPalette(
@@ -397,6 +449,7 @@ private fun controllerPalette(configuration: NESControllerConfiguration): Contro
                     Color(0xFF6E0D1A),
                     Color(0xFFFFE8B8),
                     Color(0xFF660A17),
+                    Color(0xFF570A17),
                 )
         }
     val overrides = configuration.colors

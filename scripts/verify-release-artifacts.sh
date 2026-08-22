@@ -24,6 +24,10 @@ require_file() {
 require_file "$WORK_DIR/aar/AndroidManifest.xml"
 require_file "$WORK_DIR/aar/classes.jar"
 require_file "$WORK_DIR/aar/assets/NstDatabase.xml"
+require_file "$WORK_DIR/aar/assets/licenses/GPL-2.0-or-later.txt"
+require_file "$WORK_DIR/apk/assets/licenses/GPL-2.0-or-later.txt"
+cmp LICENSE "$WORK_DIR/aar/assets/licenses/GPL-2.0-or-later.txt"
+cmp LICENSE "$WORK_DIR/apk/assets/licenses/GPL-2.0-or-later.txt"
 
 if grep -Eq '<(application|uses-feature|uses-permission)([[:space:]>])' "$WORK_DIR/aar/AndroidManifest.xml"; then
     echo "The library manifest must not add application, feature, or permission declarations." >&2
@@ -63,4 +67,4 @@ for abi in "${ABIS[@]}"; do
     done < <("$READELF" -lW "$WORK_DIR/aar/jni/$abi/libnes.so" | awk '$1 == "LOAD" { print $NF }')
 done
 
-echo "Verified AAR, APK, runtime database, Kotlin/JNI API, ABIs, and 16 KB alignment."
+echo "Verified AAR, APK, licenses, runtime database, Kotlin/JNI API, ABIs, and 16 KB alignment."

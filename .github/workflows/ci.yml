@@ -35,7 +35,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
           CHANGED="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
           echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(Package\.swift|nestopia$|swift/Sources/NESCoreBridge/|scripts/(build-engine-slice|make-engine-xcframework)\.sh|\.gitmodules)'; then
+          if echo "$CHANGED" | grep -qE '^(Package\.swift|LICENSE$|nestopia$|swift/Sources/NESCoreBridge/|scripts/(build-engine-slice|make-engine-xcframework)\.sh|\.gitmodules)'; then
             echo "engine=true" >> "$GITHUB_OUTPUT"
           else
             echo "engine=false" >> "$GITHUB_OUTPUT"

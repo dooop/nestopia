@@ -64,6 +64,13 @@ jobs:
             android/nes/build/outputs/aar/nes-release.aar \
             android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk \
             "${NES_ABIS}"
+      - name: Bundle complete corresponding source
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          SOURCE_ARCHIVE="${GITHUB_WORKSPACE}/android/nes/build/distributions/nes-${VERSION}-complete-source.tar.gz"
+          scripts/package-source-archive.sh "$SOURCE_ARCHIVE" "nes-${VERSION}-source"
+          echo "NES_COMPLETE_SOURCE_ARCHIVE=${SOURCE_ARCHIVE}" >> "$GITHUB_ENV"
       - name: Publish to GitHub Packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,6 +78,7 @@ jobs:
           ./gradlew --no-daemon :nes:publishReleasePublicationToGitHubPackagesRepository \
             -Pnes.abis="${NES_ABIS}" \
             -Pnes.version="${{ inputs.version }}" \
+            -Pnes.completeSourceArchive="${NES_COMPLETE_SOURCE_ARCHIVE}" \
             -Pnes.githubRepository="${GITHUB_REPOSITORY}"
       - name: Write provenance
         run: |
@@ -89,6 +97,7 @@ jobs:
             android/nes/build/outputs/aar/nes-release.aar
             android/nes/build/publications/release/pom-default.xml
             android/nes/build/intermediates/source_jar/release/release-sources.jar
+            android/nes/build/distributions/nes-${{ inputs.version }}-complete-source.tar.gz
             android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk
             android-release-provenance.txt
           if-no-files-found: error

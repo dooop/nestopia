@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 import Foundation
 import Testing
 
@@ -12,12 +15,23 @@ import Testing
     let configuration = NESControllerConfiguration()
     #expect(configuration.theme == .system)
     #expect(configuration.presentationMode == .automatic)
+    #expect(configuration.hapticsEnabled)
     #expect(configuration.overlayOpacity == 0.72)
+}
+
+@Test func controllerConfigurationOffersOriginalThemes() {
+    #expect(NESControllerConfiguration(theme: .nes).theme == .nes)
+    #expect(NESControllerConfiguration(theme: .famicom).theme == .famicom)
 }
 
 @Test func controllerConfigurationClampsOverlayOpacity() {
     #expect(NESControllerConfiguration(overlayOpacity: -1).overlayOpacity == 0)
     #expect(NESControllerConfiguration(overlayOpacity: 2).overlayOpacity == 1)
+}
+
+@Test func controllerConfigurationPreservesCustomControllerLabel() {
+    #expect(NESControllerConfiguration(controllerLabel: "My App").resolvedControllerLabel == "My App")
+    #expect(NESControllerConfiguration(controllerLabel: "").resolvedControllerLabel.isEmpty)
 }
 
 @Test func externalControllerHidesOnScreenControls() {

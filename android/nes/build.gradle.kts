@@ -75,6 +75,12 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 from(components["release"])
                 artifactId = "nes"
+                providers.gradleProperty("nes.completeSourceArchive").orNull?.let { archivePath ->
+                    artifact(file(archivePath)) {
+                        classifier = "complete-source"
+                        extension = "tar.gz"
+                    }
+                }
                 pom {
                     name.set("nestopia")
                     description.set("SwiftUI and Android Compose wrappers around Nestopia")
@@ -82,7 +88,7 @@ afterEvaluate {
                     licenses {
                         license {
                             name.set("GNU General Public License v2.0 or later")
-                            url.set("https://www.gnu.org/licenses/old-licenses/gpl-2.0.html")
+                            url.set("https://github.com/dooop/nes/blob/main/LICENSE")
                             distribution.set("repo")
                         }
                     }

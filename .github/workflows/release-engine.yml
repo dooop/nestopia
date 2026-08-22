@@ -98,11 +98,9 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
         run: |
-          SOURCE_ROOT="dist/nes-${TAG}-source"
-          mkdir -p "$SOURCE_ROOT/nestopia"
-          git archive HEAD | tar -x -C "$SOURCE_ROOT"
-          git -C nestopia archive HEAD | tar -x -C "$SOURCE_ROOT/nestopia"
-          tar -czf "dist/nes-${TAG}-source.tar.gz" -C dist "nes-${TAG}-source"
+          scripts/package-source-archive.sh \
+            "dist/nes-${TAG}-source.tar.gz" \
+            "nes-${TAG}-source"
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}

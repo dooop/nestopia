@@ -1,3 +1,6 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 package nestopia
 
 import android.content.res.Configuration
@@ -39,6 +42,7 @@ fun NESView(
 ) {
     val frame by engine.frame.collectAsStateWithLifecycle()
     val state by engine.state.collectAsStateWithLifecycle()
+    val controllerLabel = rememberControllerLabel(controllerConfiguration)
     val focusRequester = remember { FocusRequester() }
     val deviceConfiguration = LocalConfiguration.current
     val isTelevision =
@@ -63,7 +67,7 @@ fun NESView(
         frame?.let {
             Image(
                 bitmap = it.asImageBitmap(),
-                contentDescription = "NES video",
+                contentDescription = "Game video",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.Fit,
                 filterQuality = FilterQuality.None,
@@ -71,7 +75,7 @@ fun NESView(
         } ?: when (val current = state) {
             NESState.Loading -> CircularProgressIndicator(color = Color.White)
             is NESState.Failed -> Text(current.message, color = Color.White)
-            else -> Text("NES", color = Color.Gray)
+            else -> Text(controllerLabel, color = Color.Gray)
         }
 
         if (hasExternalController || isTelevision) {

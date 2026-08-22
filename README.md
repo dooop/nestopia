@@ -1,6 +1,6 @@
 # nes
 
-A NES/Famicom engine for Apple and Android, backed by the unmodified [Nestopia](https://github.com/0ldsk00l/nestopia) core.
+An 8-bit cartridge-console engine for Apple and Android, backed by the unmodified [Nestopia](https://github.com/0ldsk00l/nestopia) core.
 
 The repository follows the same boundary model as `swift-scummvm`:
 
@@ -54,7 +54,7 @@ The manifest falls back to source mode while it still contains the placeholder b
 
 `NES` starts on appearance and stops on disappearance. `NESView(engine:)` and `NESEngine` are public for hosts that need explicit lifecycle control, state slots, or custom controls. Touch controls are included. Apple game controllers and keyboards are mapped automatically (D-pad, A/B, Start/Select). Connecting an external controller hides the on-screen controls. tvOS never displays touch controls and instead asks the player to connect a controller when none is available.
 
-The on-screen controller supports system, NES, and Famicom themes. Automatic presentation uses a controller body when space permits and switches to a translucent overlay in landscape or compact-height containers. A host can force either mode and replace any palette color:
+The on-screen controller supports the default adaptive `system` theme plus `nes` and `famicom` themes with their original palettes. Every on-screen button provides tactile press feedback by default; set `hapticsEnabled` to `false` to disable it. Automatic presentation uses a controller body when space permits and switches to a translucent overlay in landscape or compact-height containers. The controller body uses the host app name by default; `controllerLabel` can replace it or hide it with an empty string. A host can force either mode and replace any palette color:
 
 ```swift
 NES(
@@ -62,6 +62,7 @@ NES(
     controllerConfiguration: NESControllerConfiguration(
         theme: .famicom,
         presentationMode: .automatic,
+        controllerLabel: "My App",
         colors: NESControllerColorOverrides(actionButtons: .pink)
     )
 )
@@ -104,6 +105,8 @@ Released AARs are published to GitHub Packages as `io.github.dooop:nes:<version>
 implementation("io.github.dooop:nes:<version>")
 ```
 
+The AAR and sample APK contain the full GPL terms under `assets/licenses/`. Maven releases also publish `nes-<version>-complete-source.tar.gz` with classifier `complete-source`; it contains the exact wrapper and upstream source used for the binary. Apple XCFramework archives embed the same license and source provenance at their root.
+
 The sample has `local` and `maven` flavors. `localDebug` consumes the source project, `localRelease` consumes an AAR passed with `-Pnes.releaseAar=...`, and the `maven` variants consume the published package.
 
 The sample uses Android's document picker and declares phone, tablet, gamepad, and Android TV compatibility. Compose touch controls and Android key/gamepad events map to the same native input masks as Apple, including analog sticks and up to two players. Connecting a physical controller hides the on-screen controls. Android TV never displays touch controls and instead asks the player to connect a controller when none is available.
@@ -116,6 +119,7 @@ NES(
     controllerConfiguration = NESControllerConfiguration(
         theme = NESControllerTheme.NES,
         presentationMode = NESControllerPresentationMode.Automatic,
+        controllerLabel = "My App",
         colors = NESControllerColorOverrides(actionButtons = Color(0xFFE91E63)),
     ),
     modifier = Modifier.fillMaxSize(),
@@ -124,8 +128,8 @@ NES(
 
 ## ROMs and BIOS files
 
-No commercial ROMs or firmware are included. Supply legally obtained `.nes`/`.unf` content. Famicom Disk System images require a user-supplied FDS BIOS; the initial wrapper exposes cartridge playback and Nestopia's normal missing-BIOS error but does not bundle firmware.
+No commercial ROMs or firmware are included. Supply legally obtained `.nes`/`.unf` content. Disk-system images require a user-supplied FDS BIOS; the initial wrapper exposes cartridge playback and Nestopia's normal missing-BIOS error but does not bundle firmware.
 
 ## License
 
-Nestopia is GPL-2.0-or-later. Because this project links Nestopia into the produced Apple and Android binaries, distribute the corresponding source and the GPL terms with those binaries. See [LICENSE](LICENSE) and the upstream copyright notices. This is a technical notice, not legal advice.
+Nestopia is GPL-2.0-or-later. This wrapper uses the same GPL-2.0-or-later license. Because it links Nestopia into the produced Apple and Android binaries, distribute the corresponding source and the complete [GPL terms](LICENSE) with those binaries. This is a technical summary, not legal advice.

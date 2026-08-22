@@ -1,3 +1,7 @@
+// Copyright (C) 2026 Dominic Opitz
+// SPDX-License-Identifier: GPL-2.0-or-later
+
+import Foundation
 import SwiftUI
 
 /// The visual identity used by the on-screen controller.
@@ -6,7 +10,7 @@ public enum NESControllerTheme: Sendable, Equatable {
     case system
     /// Uses the gray, black, and red palette of the original NES controller.
     case nes
-    /// Uses the cream, red, and gold palette of the original Famicom controller.
+    /// Uses the cream, burgundy, and red palette of the original Famicom controller.
     case famicom
 }
 
@@ -51,6 +55,10 @@ public struct NESControllerConfiguration {
     public var theme: NESControllerTheme
     public var presentationMode: NESControllerPresentationMode
     public var colors: NESControllerColorOverrides
+    /// Text shown on the controller body. `nil` uses the main app bundle name; an empty string hides it.
+    public var controllerLabel: String?
+    /// Enables tactile feedback when an on-screen control is pressed.
+    public var hapticsEnabled: Bool
     /// Opacity applied to button surfaces in overlay mode.
     public var overlayOpacity: Double
 
@@ -58,11 +66,25 @@ public struct NESControllerConfiguration {
         theme: NESControllerTheme = .system,
         presentationMode: NESControllerPresentationMode = .automatic,
         colors: NESControllerColorOverrides = .init(),
+        controllerLabel: String? = nil,
+        hapticsEnabled: Bool = true,
         overlayOpacity: Double = 0.72
     ) {
         self.theme = theme
         self.presentationMode = presentationMode
         self.colors = colors
+        self.controllerLabel = controllerLabel
+        self.hapticsEnabled = hapticsEnabled
         self.overlayOpacity = min(max(overlayOpacity, 0), 1)
+    }
+
+    var resolvedControllerLabel: String {
+        if let controllerLabel { return controllerLabel }
+        for key in ["CFBundleDisplayName", "CFBundleName"] {
+            if let value = Bundle.main.object(forInfoDictionaryKey: key) as? String, !value.isEmpty {
+                return value
+            }
+        }
+        return ProcessInfo.processInfo.processName
     }
 }
