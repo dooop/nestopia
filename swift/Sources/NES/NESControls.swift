@@ -95,17 +95,26 @@ public struct NESControls: View {
         Grid(horizontalSpacing: 0, verticalSpacing: 0) {
             GridRow {
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
-                control("▲", .up, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded, color: palette.dPad, palette: palette, opacity: opacity)
+                control(
+                    "▲", .up, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    color: palette.dPad, palette: palette, opacity: opacity)
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
             }
             GridRow {
-                control("◀", .left, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded, color: palette.dPad, palette: palette, opacity: opacity)
-                Rectangle().fill(palette.dPad.opacity(opacity)).frame(width: metrics.direction, height: metrics.direction)
-                control("▶", .right, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded, color: palette.dPad, palette: palette, opacity: opacity)
+                control(
+                    "◀", .left, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    color: palette.dPad, palette: palette, opacity: opacity)
+                Rectangle().fill(palette.dPad.opacity(opacity)).frame(
+                    width: metrics.direction, height: metrics.direction)
+                control(
+                    "▶", .right, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    color: palette.dPad, palette: palette, opacity: opacity)
             }
             GridRow {
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
-                control("▼", .down, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded, color: palette.dPad, palette: palette, opacity: opacity)
+                control(
+                    "▼", .down, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    color: palette.dPad, palette: palette, opacity: opacity)
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
             }
         }
@@ -113,21 +122,32 @@ public struct NESControls: View {
 
     private func utilityButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
         HStack(spacing: metrics.utilitySpacing) {
-            control("SELECT", .select, size: metrics.utility, shape: .capsule, color: palette.utility, palette: palette, opacity: opacity)
-            control("START", .start, size: metrics.utility, shape: .capsule, color: palette.utility, palette: palette, opacity: opacity)
+            control(
+                "SELECT", .select, size: metrics.utility, shape: .capsule, color: palette.utility, palette: palette,
+                opacity: opacity)
+            control(
+                "START", .start, size: metrics.utility, shape: .capsule, color: palette.utility, palette: palette,
+                opacity: opacity)
         }
     }
 
     private func actionButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
         HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
-            control("B", .b, size: metrics.action, shape: .circle, color: palette.action, palette: palette, opacity: opacity)
-                .padding(.bottom, metrics.action.height * 0.22)
-            control("A", .a, size: metrics.action, shape: .circle, color: palette.action, palette: palette, opacity: opacity)
+            control(
+                "B", .b, size: metrics.action, shape: .circle, color: palette.action, palette: palette, opacity: opacity
+            )
+            .padding(.bottom, metrics.action.height * 0.22)
+            control(
+                "A", .a, size: metrics.action, shape: .circle, color: palette.action, palette: palette, opacity: opacity
+            )
         }
     }
 
     @ViewBuilder
-    private func control(_ label: String, _ button: NESControllerButton, size: CGSize, shape: ControlShape, color: Color, palette: Palette, opacity: Double) -> some View {
+    private func control(
+        _ label: String, _ button: NESControllerButton, size: CGSize, shape: ControlShape, color: Color,
+        palette: Palette, opacity: Double
+    ) -> some View {
         #if os(tvOS)
             Button {
                 engine.setButton(button, pressed: true)
@@ -146,7 +166,9 @@ public struct NESControls: View {
         #endif
     }
 
-    private func controlLabel(_ label: String, size: CGSize, shape: ControlShape, color: Color, palette: Palette, opacity: Double) -> some View {
+    private func controlLabel(
+        _ label: String, size: CGSize, shape: ControlShape, color: Color, palette: Palette, opacity: Double
+    ) -> some View {
         Text(label)
             .font(.system(size: label.count == 1 ? 20 : 9, weight: .black, design: .rounded))
             .foregroundStyle(palette.labels)
@@ -219,11 +241,20 @@ private struct Palette {
         let defaults: (Color, Color, Color, Color, Color, Color)
         switch theme {
         case .system:
-            defaults = (.primary.opacity(0.08), .primary.opacity(0.68), .accentColor, .primary.opacity(0.55), .white, .primary)
+            defaults = (
+                .primary.opacity(0.08), .primary.opacity(0.68), .accentColor, .primary.opacity(0.55), .white, .primary
+            )
         case .nes:
-            defaults = (Color(red: 0.70, green: 0.70, blue: 0.68), Color(white: 0.10), Color(red: 0.67, green: 0.05, blue: 0.12), Color(white: 0.16), .white, Color(white: 0.15))
+            defaults = (
+                Color(red: 0.70, green: 0.70, blue: 0.68), Color(white: 0.10),
+                Color(red: 0.67, green: 0.05, blue: 0.12), Color(white: 0.16), .white, Color(white: 0.15)
+            )
         case .famicom:
-            defaults = (Color(red: 0.91, green: 0.86, blue: 0.69), Color(red: 0.34, green: 0.04, blue: 0.09), Color(red: 0.63, green: 0.03, blue: 0.08), Color(red: 0.43, green: 0.05, blue: 0.10), Color(red: 0.98, green: 0.91, blue: 0.72), Color(red: 0.40, green: 0.04, blue: 0.09))
+            defaults = (
+                Color(red: 0.91, green: 0.86, blue: 0.69), Color(red: 0.34, green: 0.04, blue: 0.09),
+                Color(red: 0.63, green: 0.03, blue: 0.08), Color(red: 0.43, green: 0.05, blue: 0.10),
+                Color(red: 0.98, green: 0.91, blue: 0.72), Color(red: 0.40, green: 0.04, blue: 0.09)
+            )
         }
         body = overrides.body ?? defaults.0
         dPad = overrides.directionalPad ?? defaults.1

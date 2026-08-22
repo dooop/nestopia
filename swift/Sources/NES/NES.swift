@@ -31,9 +31,9 @@ public struct NES: View {
             showsControls: configuration.showsTouchControls,
             controllerConfiguration: controllerConfiguration
         )
-            .onAppear {
-                if configuration.automaticallyStarts { engine.start() }
-            }
-            .onDisappear { engine.stop() }
+        .onAppear {
+            if configuration.automaticallyStarts { engine.start() }
+        }
+        .onDisappear { engine.stop() }
     }
 }
