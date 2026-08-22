@@ -66,6 +66,7 @@ dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.kotlinx.coroutines.android)
+    testImplementation(libs.junit)
 }
 
 afterEvaluate {

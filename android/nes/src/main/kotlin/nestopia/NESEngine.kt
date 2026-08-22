@@ -47,15 +47,21 @@ class NESEngine(
     }
 
     fun pause() {
+        val currentState = _state.value
+        val nextState = currentState.afterPauseRequest()
+        if (nextState == currentState) return
         paused = true
         synchronized(nativeLock) { audioTrack?.pause() }
-        _state.value = NESState.Paused
+        _state.value = nextState
     }
 
     fun resume() {
+        val currentState = _state.value
+        val nextState = currentState.afterResumeRequest()
+        if (nextState == currentState) return
         paused = false
         synchronized(nativeLock) { audioTrack?.play() }
-        _state.value = NESState.Running
+        _state.value = nextState
     }
 
     fun setButton(
