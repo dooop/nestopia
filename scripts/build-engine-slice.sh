@@ -73,16 +73,37 @@ fi
 FRAMEWORK_DIR="$OUTPUT_DIR/CNestopiaCore.framework"
 
 rm -rf "$OUTPUT_DIR"
-mkdir -p "$FRAMEWORK_DIR/Headers" "$FRAMEWORK_DIR/Modules"
-xcrun libtool -static -o "$FRAMEWORK_DIR/CNestopiaCore" "$OBJECT"
-xcrun strip -S "$FRAMEWORK_DIR/CNestopiaCore"
-cp swift/Sources/NestopiaCoreBridge/include/nestopia_engine.h "$FRAMEWORK_DIR/Headers/"
+if [ "$SLICE_ID" = "macos-arm64_x86_64" ]; then
+    FRAMEWORK_CONTENTS="$FRAMEWORK_DIR/Versions/A"
+    FRAMEWORK_HEADERS="$FRAMEWORK_CONTENTS/Headers"
+    FRAMEWORK_MODULES="$FRAMEWORK_CONTENTS/Modules"
+    FRAMEWORK_RESOURCES="$FRAMEWORK_CONTENTS/Resources"
+    FRAMEWORK_BINARY="$FRAMEWORK_CONTENTS/CNestopiaCore"
+    FRAMEWORK_PLIST="$FRAMEWORK_RESOURCES/Info.plist"
 
-cat > "$FRAMEWORK_DIR/Headers/CNestopiaCore.h" <<'EOF'
+    mkdir -p "$FRAMEWORK_HEADERS" "$FRAMEWORK_MODULES" "$FRAMEWORK_RESOURCES"
+    ln -s A "$FRAMEWORK_DIR/Versions/Current"
+    ln -s Versions/Current/CNestopiaCore "$FRAMEWORK_DIR/CNestopiaCore"
+    ln -s Versions/Current/Headers "$FRAMEWORK_DIR/Headers"
+    ln -s Versions/Current/Modules "$FRAMEWORK_DIR/Modules"
+    ln -s Versions/Current/Resources "$FRAMEWORK_DIR/Resources"
+else
+    FRAMEWORK_HEADERS="$FRAMEWORK_DIR/Headers"
+    FRAMEWORK_MODULES="$FRAMEWORK_DIR/Modules"
+    FRAMEWORK_BINARY="$FRAMEWORK_DIR/CNestopiaCore"
+    FRAMEWORK_PLIST="$FRAMEWORK_DIR/Info.plist"
+    mkdir -p "$FRAMEWORK_HEADERS" "$FRAMEWORK_MODULES"
+fi
+
+xcrun libtool -static -o "$FRAMEWORK_BINARY" "$OBJECT"
+xcrun strip -S "$FRAMEWORK_BINARY"
+cp swift/Sources/NestopiaCoreBridge/include/nestopia_engine.h "$FRAMEWORK_HEADERS/"
+
+cat > "$FRAMEWORK_HEADERS/CNestopiaCore.h" <<'EOF'
 #include "nestopia_engine.h"
 EOF
 
-cat > "$FRAMEWORK_DIR/Modules/module.modulemap" <<'EOF'
+cat > "$FRAMEWORK_MODULES/module.modulemap" <<'EOF'
 framework module CNestopiaCore {
     umbrella header "CNestopiaCore.h"
     export *
@@ -90,7 +111,7 @@ framework module CNestopiaCore {
 }
 EOF
 
-cat > "$FRAMEWORK_DIR/Info.plist" <<'EOF'
+cat > "$FRAMEWORK_PLIST" <<'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -115,4 +136,4 @@ cat > "$FRAMEWORK_DIR/Info.plist" <<'EOF'
 </plist>
 EOF
 
-echo "Built $SLICE_ID: $(lipo -archs "$FRAMEWORK_DIR/CNestopiaCore")"
+echo "Built $SLICE_ID: $(lipo -archs "$FRAMEWORK_BINARY")"
