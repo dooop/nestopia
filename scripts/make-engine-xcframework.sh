@@ -27,11 +27,11 @@ for slice in \
     tvos-arm64 \
     tvos-arm64_x86_64-simulator \
     macos-arm64_x86_64; do
-    library="$SLICES_DIR/$slice/libCNestopiaCore.a"
-    headers="$SLICES_DIR/$slice/Headers"
-    test -f "$library" || { echo "Missing slice library: $library" >&2; exit 1; }
-    test -f "$headers/nestopia_engine.h" || { echo "Missing headers: $headers" >&2; exit 1; }
-    ARGS+=(-library "$library" -headers "$headers")
+    framework="$SLICES_DIR/$slice/CNestopiaCore.framework"
+    test -f "$framework/CNestopiaCore" || { echo "Missing slice framework binary: $framework/CNestopiaCore" >&2; exit 1; }
+    test -f "$framework/Headers/nestopia_engine.h" || { echo "Missing framework headers: $framework/Headers" >&2; exit 1; }
+    test -f "$framework/Modules/module.modulemap" || { echo "Missing framework module map: $framework/Modules/module.modulemap" >&2; exit 1; }
+    ARGS+=(-framework "$framework")
 done
 
 rm -rf "$OUTPUT_DIR/CNestopiaCore.xcframework" "$OUTPUT_DIR/CNestopiaCore.xcframework.zip"

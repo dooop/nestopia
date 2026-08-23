@@ -70,17 +70,49 @@ if [ -z "$OBJECT" ]; then
     exit 1
 fi
 
-rm -rf "$OUTPUT_DIR"
-mkdir -p "$OUTPUT_DIR/Headers"
-xcrun libtool -static -o "$OUTPUT_DIR/libCNestopiaCore.a" "$OBJECT"
-xcrun strip -S "$OUTPUT_DIR/libCNestopiaCore.a"
-cp swift/Sources/NestopiaCoreBridge/include/nestopia_engine.h "$OUTPUT_DIR/Headers/"
+FRAMEWORK_DIR="$OUTPUT_DIR/CNestopiaCore.framework"
 
-cat > "$OUTPUT_DIR/Headers/module.modulemap" <<'EOF'
-module CNestopiaCore {
-    header "nestopia_engine.h"
+rm -rf "$OUTPUT_DIR"
+mkdir -p "$FRAMEWORK_DIR/Headers" "$FRAMEWORK_DIR/Modules"
+xcrun libtool -static -o "$FRAMEWORK_DIR/CNestopiaCore" "$OBJECT"
+xcrun strip -S "$FRAMEWORK_DIR/CNestopiaCore"
+cp swift/Sources/NestopiaCoreBridge/include/nestopia_engine.h "$FRAMEWORK_DIR/Headers/"
+
+cat > "$FRAMEWORK_DIR/Headers/CNestopiaCore.h" <<'EOF'
+#include "nestopia_engine.h"
+EOF
+
+cat > "$FRAMEWORK_DIR/Modules/module.modulemap" <<'EOF'
+framework module CNestopiaCore {
+    umbrella header "CNestopiaCore.h"
     export *
+    module * { export * }
 }
 EOF
 
-echo "Built $SLICE_ID: $(lipo -archs "$OUTPUT_DIR/libCNestopiaCore.a")"
+cat > "$FRAMEWORK_DIR/Info.plist" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>CNestopiaCore</string>
+    <key>CFBundleIdentifier</key>
+    <string>net.sourceforge.nestopia.CNestopiaCore</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>CNestopiaCore</string>
+    <key>CFBundlePackageType</key>
+    <string>FMWK</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+</dict>
+</plist>
+EOF
+
+echo "Built $SLICE_ID: $(lipo -archs "$FRAMEWORK_DIR/CNestopiaCore")"
