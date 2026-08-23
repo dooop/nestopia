@@ -2,8 +2,8 @@
 import Foundation
 import PackageDescription
 
-let engineBinaryBaseURL = "https://github.com/dooop/nestopia/releases/download/0.1.0"
-let engineChecksum = "df12863608a32c0959d0b7a68ffaa50c2c743804b148fee1483f7dba1ca49543"
+let engineBinaryBaseURL = "https://github.com/dooop/nestopia/releases/download/0.1.1"
+let engineChecksum = "12f3325bd66089f1e6fc4de3b2df9d9100a6571799da3ad4463422e4b53ab320"
 let localEngineArtifactsPath = ProcessInfo.processInfo.environment["NESTOPIA_ENGINE_ARTIFACTS_DIR"]
 let releasedEngineAvailable = engineChecksum != String(repeating: "0", count: 64)
 
