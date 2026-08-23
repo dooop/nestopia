@@ -303,6 +303,7 @@ private struct Palette {
     }
 }
 
+#if !os(tvOS)
 private struct PressableControl<Content: View>: View {
     let hapticsEnabled: Bool
     let onPressedChange: (Bool) -> Void
@@ -333,6 +334,7 @@ private struct PressableControl<Content: View>: View {
         onPressedChange(false)
     }
 }
+#endif
 
 private func performControllerHaptic() {
     #if os(iOS)
