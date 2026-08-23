@@ -7,6 +7,10 @@
 **/.cxx/
 **/build/
 DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
 local.properties
 android/local.properties
 CLAUDE.local.md

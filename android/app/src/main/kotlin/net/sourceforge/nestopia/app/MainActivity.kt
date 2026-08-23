@@ -22,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import net.sourceforge.nestopia.Nestopia
 import net.sourceforge.nestopia.NestopiaConfiguration
 
@@ -48,7 +49,7 @@ class MainActivity : ComponentActivity() {
                     val selectedROM = romURI
                     if (selectedROM == null) {
                         Button(onClick = { picker.launch(arrayOf("application/octet-stream", "*/*")) }) {
-                            Text("Spieldatei öffnen")
+                            Text(stringResource(R.string.open_game_file))
                         }
                     } else {
                         Nestopia(

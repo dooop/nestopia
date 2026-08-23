@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Nestopia</string>
+    <string name="open_game_file">Open game file</string>
 </resources>
