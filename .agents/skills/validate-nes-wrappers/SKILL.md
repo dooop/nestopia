@@ -3,7 +3,7 @@ name: validate-nes-wrappers
 description: Validates the Nestopia Apple and Android wrappers, triages build and lint output, and checks release hygiene and GPL obligations. Use after code or build changes, before handoff or release, or when asked to test, verify, inspect CI readiness, or audit generated files. Do not use as the primary implementation workflow.
 ---
 
-# Validate NES wrappers
+# Validate Nestopia wrappers
 
 Run from the repository root. Do not clean or delete the user's existing outputs merely to obtain a clean run.
 
@@ -22,9 +22,9 @@ Choose the full affected matrix; do not claim a platform passed from a different
 swift package dump-package >/dev/null
 swift build
 swift test
-xcodebuild -scheme nes -destination 'generic/platform=iOS' build
-./gradlew :nes:assembleDebug :app:assembleLocalDebug
-./gradlew :nes:lintDebug :app:lintLocalDebug
+xcodebuild -scheme nestopia -destination 'generic/platform=iOS' build
+./gradlew :nestopia:assembleDebug :app:assembleLocalDebug
+./gradlew :nestopia:lintDebug :app:lintLocalDebug
 ```
 
 Use `./scripts/validate.sh` for the repository's shorter combined entry point, but add `swift test`, iOS, and Android lint when their toolchains are available.

@@ -1,4 +1,4 @@
 interface:
-  display_name: "Develop NES Wrappers"
+  display_name: "Develop Nestopia Wrappers"
   short_description: "Safely evolve the Apple and Android wrappers"
-  default_prompt: "Use $develop-nes-wrappers to implement a cross-platform NES wrapper change."
+  default_prompt: "Use $develop-nes-wrappers to implement a cross-platform Nestopia wrapper change."

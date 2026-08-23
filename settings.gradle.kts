@@ -13,7 +13,7 @@ dependencyResolutionManagement {
         mavenCentral()
         maven {
             name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/dooop/nes")
+            url = uri("https://maven.pkg.github.com/dooop/nestopia")
             credentials {
                 username =
                     providers.gradleProperty("gpr.user")
@@ -28,7 +28,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "nes"
-include(":nes", ":app")
-project(":nes").projectDir = file("android/nes")
+rootProject.name = "nestopia"
+include(":nestopia", ":app")
+project(":nestopia").projectDir = file("android/nestopia")
 project(":app").projectDir = file("android/app")

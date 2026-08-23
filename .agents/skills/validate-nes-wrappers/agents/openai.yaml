@@ -1,4 +1,4 @@
 interface:
-  display_name: "Validate NES Wrappers"
+  display_name: "Validate Nestopia Wrappers"
   short_description: "Run cross-platform build and release checks"
   default_prompt: "Use $validate-nes-wrappers to validate this repository before release."

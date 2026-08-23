@@ -1,0 +1,1 @@
+-keep class net.sourceforge.nestopia.internal.NativeNestopia { *; }

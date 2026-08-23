@@ -46,11 +46,11 @@ case "$SLICE_ID" in
         ;;
 esac
 
-export NES_BUILD_FROM_SOURCE=1
+export NESTOPIA_BUILD_FROM_SOURCE=1
 
 cd "$REPO_ROOT"
 xcodebuild build -quiet \
-    -scheme nes \
+    -scheme nestopia \
     -destination "$DESTINATION" \
     -configuration Release \
     -derivedDataPath "$WORK_DIR/DerivedData" \
@@ -63,24 +63,24 @@ xcodebuild build -quiet \
     CODE_SIGNING_REQUIRED=NO
 
 PRODUCT_DIR="$WORK_DIR/DerivedData/Build/Products"
-OBJECT="$(find "$PRODUCT_DIR" -maxdepth 3 -type f -name 'CNESCore.o' -print -quit)"
+OBJECT="$(find "$PRODUCT_DIR" -maxdepth 3 -type f -name 'CNestopiaCore.o' -print -quit)"
 if [ -z "$OBJECT" ]; then
-    echo "CNESCore.o was not produced for $SLICE_ID" >&2
+    echo "CNestopiaCore.o was not produced for $SLICE_ID" >&2
     find "$PRODUCT_DIR" -maxdepth 3 -type f -print >&2 || true
     exit 1
 fi
 
 rm -rf "$OUTPUT_DIR"
 mkdir -p "$OUTPUT_DIR/Headers"
-xcrun libtool -static -o "$OUTPUT_DIR/libCNESCore.a" "$OBJECT"
-xcrun strip -S "$OUTPUT_DIR/libCNESCore.a"
-cp swift/Sources/NESCoreBridge/include/nes_engine.h "$OUTPUT_DIR/Headers/"
+xcrun libtool -static -o "$OUTPUT_DIR/libCNestopiaCore.a" "$OBJECT"
+xcrun strip -S "$OUTPUT_DIR/libCNestopiaCore.a"
+cp swift/Sources/NestopiaCoreBridge/include/nestopia_engine.h "$OUTPUT_DIR/Headers/"
 
 cat > "$OUTPUT_DIR/Headers/module.modulemap" <<'EOF'
-module CNESCore {
-    header "nes_engine.h"
+module CNestopiaCore {
+    header "nestopia_engine.h"
     export *
 }
 EOF
 
-echo "Built $SLICE_ID: $(lipo -archs "$OUTPUT_DIR/libCNESCore.a")"
+echo "Built $SLICE_ID: $(lipo -archs "$OUTPUT_DIR/libCNestopiaCore.a")"

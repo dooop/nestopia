@@ -9,30 +9,34 @@ ktlint {
     outputToConsole.set(true)
 }
 
+base {
+    archivesName.set("nestopia")
+}
+
 val releaseAar =
-    providers.gradleProperty("nes.releaseAar").orElse(
+    providers.gradleProperty("nestopia.releaseAar").orElse(
         layout.projectDirectory
-            .file("libs/nes-release.aar")
+            .file("libs/nestopia-release.aar")
             .asFile.absolutePath,
     )
 
-val mavenVersion = providers.gradleProperty("nes.mavenVersion").getOrElse("0.0.0")
+val mavenVersion = providers.gradleProperty("nestopia.mavenVersion").getOrElse("0.0.0")
 
 val configuredAbis =
     providers
-        .gradleProperty("nes.abis")
+        .gradleProperty("nestopia.abis")
         .getOrElse("arm64-v8a,x86_64")
         .split(",")
         .map(String::trim)
         .filter(String::isNotEmpty)
 
 android {
-    namespace = "nestopia.app"
+    namespace = "net.sourceforge.nestopia.app"
     compileSdk { version = release(37) }
     enableKotlin = true
 
     defaultConfig {
-        applicationId = "nestopia.app"
+        applicationId = "net.sourceforge.nestopia"
         minSdk = 23
         targetSdk = 37
         versionCode = 1
@@ -53,7 +57,7 @@ android {
         create("maven") {
             dimension = "engineSource"
             versionNameSuffix = "-maven"
-            buildConfigField("String", "ENGINE_SOURCE", "\"maven:io.github.dooop:nes:$mavenVersion\"")
+            buildConfigField("String", "ENGINE_SOURCE", "\"maven:io.github.dooop:nestopia:$mavenVersion\"")
         }
     }
     buildTypes {
@@ -73,7 +77,7 @@ android {
 }
 
 dependencies {
-    "mavenImplementation"("io.github.dooop:nes:$mavenVersion")
+    "mavenImplementation"("io.github.dooop:nestopia:$mavenVersion")
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.foundation)
@@ -84,7 +88,7 @@ dependencies {
 
 afterEvaluate {
     dependencies {
-        "localDebugImplementation"(project(":nes"))
+        "localDebugImplementation"(project(":nestopia"))
         "localReleaseImplementation"(files(releaseAar))
     }
 }
@@ -97,7 +101,7 @@ val verifyReleaseAar =
             val aar = file(releaseAar.get())
             require(aar.isFile) {
                 "The local release build requires a prebuilt nestopia AAR at ${aar.path}. " +
-                    "Pass -Pnes.releaseAar=/absolute/path/to/nes-release.aar."
+                    "Pass -Pnestopia.releaseAar=/absolute/path/to/nestopia-release.aar."
             }
         }
     }

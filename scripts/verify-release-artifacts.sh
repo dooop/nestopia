@@ -36,11 +36,11 @@ fi
 
 CLASSES="$(jar tf "$WORK_DIR/aar/classes.jar")"
 for class in \
-    nestopia/NESKt.class \
-    nestopia/NESConfiguration.class \
-    nestopia/NESEngine.class \
-    nestopia/NESViewKt.class \
-    nestopia/internal/NativeNES.class; do
+    net/sourceforge/nestopia/NestopiaKt.class \
+    net/sourceforge/nestopia/NestopiaConfiguration.class \
+    net/sourceforge/nestopia/NestopiaEngine.class \
+    net/sourceforge/nestopia/NestopiaViewKt.class \
+    net/sourceforge/nestopia/internal/NativeNestopia.class; do
     grep -qx "$class" <<< "$CLASSES" || { echo "Missing class: $class" >&2; exit 1; }
 done
 
@@ -57,14 +57,14 @@ fi
 test -x "$READELF" || { echo "Set READELF or ANDROID_NDK_ROOT." >&2; exit 1; }
 
 for abi in "${ABIS[@]}"; do
-    require_file "$WORK_DIR/aar/jni/$abi/libnes.so"
-    require_file "$WORK_DIR/apk/lib/$abi/libnes.so"
+    require_file "$WORK_DIR/aar/jni/$abi/libnestopia.so"
+    require_file "$WORK_DIR/apk/lib/$abi/libnestopia.so"
     while read -r alignment; do
         test "$((alignment))" -ge "$((0x4000))" || {
-            echo "libnes.so for $abi has LOAD alignment $alignment; 0x4000 is required." >&2
+            echo "libnestopia.so for $abi has LOAD alignment $alignment; 0x4000 is required." >&2
             exit 1
         }
-    done < <("$READELF" -lW "$WORK_DIR/aar/jni/$abi/libnes.so" | awk '$1 == "LOAD" { print $NF }')
+    done < <("$READELF" -lW "$WORK_DIR/aar/jni/$abi/libnestopia.so" | awk '$1 == "LOAD" { print $NF }')
 done
 
 echo "Verified AAR, APK, licenses, runtime database, Kotlin/JNI API, ABIs, and 16 KB alignment."

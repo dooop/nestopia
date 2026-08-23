@@ -18,7 +18,7 @@ permissions:
 
 env:
   NDK_VERSION: "29.0.14206865"
-  NES_ABIS: "arm64-v8a,x86_64"
+  NESTOPIA_ABIS: "arm64-v8a,x86_64"
 
 jobs:
   publish:
@@ -50,54 +50,54 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Build release AAR
         run: |
-          ./gradlew --no-daemon :nes:assembleRelease \
-            -Pnes.abis="${NES_ABIS}" \
-            -Pnes.version="${{ inputs.version }}"
+          ./gradlew --no-daemon :nestopia:assembleRelease \
+            -Pnestopia.abis="${NESTOPIA_ABIS}" \
+            -Pnestopia.version="${{ inputs.version }}"
       - name: Build sample from release AAR
         run: |
           ./gradlew --no-daemon :app:assembleLocalRelease \
-            -Pnes.releaseAar="${GITHUB_WORKSPACE}/android/nes/build/outputs/aar/nes-release.aar" \
-            -Pnes.abis="${NES_ABIS}"
+            -Pnestopia.releaseAar="${GITHUB_WORKSPACE}/android/nestopia/build/outputs/aar/nestopia-release.aar" \
+            -Pnestopia.abis="${NESTOPIA_ABIS}"
       - name: Verify release artifacts
         run: |
           scripts/verify-release-artifacts.sh \
-            android/nes/build/outputs/aar/nes-release.aar \
-            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk \
-            "${NES_ABIS}"
+            android/nestopia/build/outputs/aar/nestopia-release.aar \
+            android/app/build/outputs/apk/local/release/nestopia-local-release-unsigned.apk \
+            "${NESTOPIA_ABIS}"
       - name: Bundle complete corresponding source
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          SOURCE_ARCHIVE="${GITHUB_WORKSPACE}/android/nes/build/distributions/nes-${VERSION}-complete-source.tar.gz"
-          scripts/package-source-archive.sh "$SOURCE_ARCHIVE" "nes-${VERSION}-source"
-          echo "NES_COMPLETE_SOURCE_ARCHIVE=${SOURCE_ARCHIVE}" >> "$GITHUB_ENV"
+          SOURCE_ARCHIVE="${GITHUB_WORKSPACE}/android/nestopia/build/distributions/nestopia-${VERSION}-complete-source.tar.gz"
+          scripts/package-source-archive.sh "$SOURCE_ARCHIVE" "nestopia-${VERSION}-source"
+          echo "NESTOPIA_COMPLETE_SOURCE_ARCHIVE=${SOURCE_ARCHIVE}" >> "$GITHUB_ENV"
       - name: Publish to GitHub Packages
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ./gradlew --no-daemon :nes:publishReleasePublicationToGitHubPackagesRepository \
-            -Pnes.abis="${NES_ABIS}" \
-            -Pnes.version="${{ inputs.version }}" \
-            -Pnes.completeSourceArchive="${NES_COMPLETE_SOURCE_ARCHIVE}" \
-            -Pnes.githubRepository="${GITHUB_REPOSITORY}"
+          ./gradlew --no-daemon :nestopia:publishReleasePublicationToGitHubPackagesRepository \
+            -Pnestopia.abis="${NESTOPIA_ABIS}" \
+            -Pnestopia.version="${{ inputs.version }}" \
+            -Pnestopia.completeSourceArchive="${NESTOPIA_COMPLETE_SOURCE_ARCHIVE}" \
+            -Pnestopia.githubRepository="${GITHUB_REPOSITORY}"
       - name: Write provenance
         run: |
           {
-            echo "coordinates=io.github.dooop:nes:${{ inputs.version }}"
+            echo "coordinates=io.github.dooop:nestopia:${{ inputs.version }}"
             echo "repository=${GITHUB_REPOSITORY}"
             echo "wrapper_commit=${GITHUB_SHA}"
             echo "upstream_commit=$(git -C nestopia rev-parse HEAD)"
-            echo "abis=${NES_ABIS}"
+            echo "abis=${NESTOPIA_ABIS}"
             echo "ndk=${NDK_VERSION}"
           } > android-release-provenance.txt
       - uses: actions/upload-artifact@v7
         with:
-          name: nes-android-${{ inputs.version }}
+          name: nestopia-android-${{ inputs.version }}
           path: |
-            android/nes/build/outputs/aar/nes-release.aar
-            android/nes/build/publications/release/pom-default.xml
-            android/nes/build/intermediates/source_jar/release/release-sources.jar
-            android/nes/build/distributions/nes-${{ inputs.version }}-complete-source.tar.gz
-            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk
+            android/nestopia/build/outputs/aar/nestopia-release.aar
+            android/nestopia/build/publications/release/pom-default.xml
+            android/nestopia/build/intermediates/source_jar/release/release-sources.jar
+            android/nestopia/build/distributions/nestopia-${{ inputs.version }}-complete-source.tar.gz
+            android/app/build/outputs/apk/local/release/nestopia-local-release-unsigned.apk
             android-release-provenance.txt
           if-no-files-found: error

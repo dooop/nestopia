@@ -35,7 +35,7 @@ jobs:
           git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
           CHANGED="$(git diff --name-only "origin/${{ github.base_ref }}"...HEAD)"
           echo "$CHANGED"
-          if echo "$CHANGED" | grep -qE '^(Package\.swift|LICENSE$|nestopia$|swift/Sources/NESCoreBridge/|scripts/(build-engine-slice|make-engine-xcframework)\.sh|\.gitmodules)'; then
+          if echo "$CHANGED" | grep -qE '^(Package\.swift|LICENSE$|nestopia$|swift/Sources/NestopiaCoreBridge/|scripts/(build-engine-slice|make-engine-xcframework)\.sh|\.gitmodules)'; then
             echo "engine=true" >> "$GITHUB_OUTPUT"
           else
             echo "engine=false" >> "$GITHUB_OUTPUT"
@@ -88,7 +88,7 @@ jobs:
             key: tvos
             destination: "generic/platform=tvOS"
     env:
-      NES_BUILD_FROM_SOURCE: "1"
+      NESTOPIA_BUILD_FROM_SOURCE: "1"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -102,7 +102,7 @@ jobs:
         if: matrix.key != 'macos'
         run: |
           xcodebuild build \
-            -scheme nes \
+            -scheme nestopia \
             -destination "${{ matrix.destination }}" \
             -derivedDataPath ".build/source-${{ matrix.key }}" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
@@ -132,16 +132,16 @@ jobs:
         id: guard
         run: |
           if grep -q 'engineChecksum = "0\{64\}"' Package.swift; then
-            echo "::notice::No prebuilt CNESCore release is referenced yet."
+            echo "::notice::No prebuilt CNestopiaCore release is referenced yet."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
-      - name: Build against precompiled CNESCore
+      - name: Build against precompiled CNestopiaCore
         if: steps.guard.outputs.ready == 'true'
         run: |
           xcodebuild build \
-            -scheme nes \
+            -scheme nestopia \
             -destination "${{ matrix.destination }}" \
             -derivedDataPath ".build/binary-${{ matrix.key }}" \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
@@ -154,7 +154,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
-      NES_ABIS: "arm64-v8a"
+      NESTOPIA_ABIS: "arm64-v8a"
     steps:
       - uses: actions/checkout@v7
         with:
@@ -171,25 +171,25 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
       - name: Build library and project-linked sample
         run: |
-          ./gradlew --no-daemon :nes:testDebugUnitTest :nes:assembleRelease :app:assembleLocalDebug \
-            -Pnes.abis="${NES_ABIS}"
+          ./gradlew --no-daemon :nestopia:testDebugUnitTest :nestopia:assembleRelease :app:assembleLocalDebug \
+            -Pnestopia.abis="${NESTOPIA_ABIS}"
       - name: Build sample from the prebuilt AAR
         run: |
           ./gradlew --no-daemon :app:assembleLocalRelease \
-            -Pnes.releaseAar="${GITHUB_WORKSPACE}/android/nes/build/outputs/aar/nes-release.aar" \
-            -Pnes.abis="${NES_ABIS}"
+            -Pnestopia.releaseAar="${GITHUB_WORKSPACE}/android/nestopia/build/outputs/aar/nestopia-release.aar" \
+            -Pnestopia.abis="${NESTOPIA_ABIS}"
       - name: Run Android lint
-        run: ./gradlew --no-daemon :nes:lintDebug :app:lintLocalDebug -Pnes.abis="${NES_ABIS}"
+        run: ./gradlew --no-daemon :nestopia:lintDebug :app:lintLocalDebug -Pnestopia.abis="${NESTOPIA_ABIS}"
       - name: Verify artifacts
         run: |
           scripts/verify-release-artifacts.sh \
-            android/nes/build/outputs/aar/nes-release.aar \
-            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk \
-            "${NES_ABIS}"
+            android/nestopia/build/outputs/aar/nestopia-release.aar \
+            android/app/build/outputs/apk/local/release/nestopia-local-release-unsigned.apk \
+            "${NESTOPIA_ABIS}"
       - uses: actions/upload-artifact@v7
         with:
-          name: nes-android-artifacts
+          name: nestopia-android-artifacts
           path: |
-            android/nes/build/outputs/aar/nes-release.aar
-            android/app/build/outputs/apk/local/release/app-local-release-unsigned.apk
+            android/nestopia/build/outputs/aar/nestopia-release.aar
+            android/app/build/outputs/apk/local/release/nestopia-local-release-unsigned.apk
           if-no-files-found: error

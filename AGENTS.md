@@ -9,9 +9,9 @@
 ## Architecture
 
 - `nestopia/`: read-only upstream git submodule.
-- `swift/Sources/NESCoreBridge/`: portable C ABI and C++ integration shared by both platforms.
-- `swift/Sources/NES/`: SwiftUI API, Apple lifecycle, video, audio, and controller handling.
-- `android/nes/`: Android library, Compose UI, lifecycle, JNI, and CMake host.
+- `swift/Sources/NestopiaCoreBridge/`: portable C ABI and C++ integration shared by both platforms.
+- `swift/Sources/Nestopia/`: SwiftUI API, Apple lifecycle, video, audio, and controller handling.
+- `android/nestopia/`: Android library, Compose UI, lifecycle, JNI, and CMake host.
 - `android/app/`: sample-only Android application.
 - `swift/Tests/` and Android test source sets: wrapper tests; never put tests in the submodule.
 
@@ -20,7 +20,7 @@
 - Never edit, delete, reformat, patch, or generate files under `nestopia/`.
 - Preserve one engine per process. Nestopia callback managers are global; every success, failure, cancellation, and disposal path must release the process claim exactly once.
 - Serialize all calls that touch a native engine. Do not destroy an engine while frame, audio, input, state, or file callbacks can still use it.
-- Put portable emulator behavior in `swift/Sources/NESCoreBridge/`, not in JNI or Swift.
+- Put portable emulator behavior in `swift/Sources/NestopiaCoreBridge/`, not in JNI or Swift.
 - Keep platform lifecycle, storage access, rendering, audio output, and controls in their platform layer.
 - Do not commit `.build/`, `.gradle/`, `.kotlin/`, `**/.cxx/`, `**/build/`, `DerivedData/`, APKs, AARs, archives, or local SDK configuration.
 - Do not add ROMs, BIOS images, firmware, copyrighted game assets, secrets, or machine-local paths.
@@ -52,11 +52,11 @@ Run the narrowest relevant checks while iterating, then the full affected platfo
 - Manifest: `swift package dump-package > /dev/null`
 - Apple host: `swift build`
 - Apple tests: `swift test`
-- iOS: `xcodebuild -scheme nes -destination 'generic/platform=iOS' build`
-- Android library: `./gradlew :nes:assembleDebug`
+- iOS: `xcodebuild -scheme nestopia -destination 'generic/platform=iOS' build`
+- Android library: `./gradlew :nestopia:assembleDebug`
 - Android sample from source: `./gradlew :app:assembleLocalDebug`
-- Android sample from AAR: `./gradlew :app:assembleLocalRelease -Pnes.releaseAar=/absolute/path/to/nes-release.aar`
-- Android lint: `./gradlew :nes:lintDebug :app:lintLocalDebug`
+- Android sample from AAR: `./gradlew :app:assembleLocalRelease -Pnestopia.releaseAar=/absolute/path/to/nestopia-release.aar`
+- Android lint: `./gradlew :nestopia:lintDebug :app:lintLocalDebug`
 - Combined local validation: `./scripts/validate.sh`
 
 After validation, run `git status --short` and ensure only intended source/configuration files changed. Generated output must remain ignored and untracked.

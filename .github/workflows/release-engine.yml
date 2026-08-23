@@ -76,7 +76,7 @@ jobs:
           scripts/make-engine-xcframework.sh slices dist
       - name: Validate local binary artifact
         env:
-          NES_ENGINE_ARTIFACTS_DIR: dist
+          NESTOPIA_ENGINE_ARTIFACTS_DIR: dist
         run: |
           swift package reset
           for entry in \
@@ -88,7 +88,7 @@ jobs:
             platform="${entry%%|*}"
             key="${entry#*|}"
             xcodebuild build \
-              -scheme nes \
+              -scheme nestopia \
               -destination "generic/platform=${platform}" \
               -derivedDataPath ".build/binary-validation-${key}" \
               CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO
@@ -99,8 +99,8 @@ jobs:
           TAG: ${{ inputs.tag }}
         run: |
           scripts/package-source-archive.sh \
-            "dist/nes-${TAG}-source.tar.gz" \
-            "nes-${TAG}-source"
+            "dist/nestopia-${TAG}-source.tar.gz" \
+            "nestopia-${TAG}-source"
       - name: Create draft release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -109,7 +109,7 @@ jobs:
           CHECKSUM="$(cat dist/checksum.txt)"
           UPSTREAM="$(git -C nestopia rev-parse HEAD)"
           {
-            echo "Prebuilt Nestopia CNESCore for nes."
+            echo "Prebuilt Nestopia CNestopiaCore for Nestopia."
             echo
             echo "Upstream commit: ${UPSTREAM}"
             echo "Slices: iOS, iOS Simulator, tvOS, tvOS Simulator, and macOS."
@@ -117,7 +117,7 @@ jobs:
             echo "Package.swift checksum: ${CHECKSUM}"
           } > release-notes.md
           gh release create "$TAG" --draft --title "$TAG" --notes-file release-notes.md \
-            dist/CNESCore.xcframework.zip dist/SOURCES.txt "dist/nes-${TAG}-source.tar.gz"
+            dist/CNestopiaCore.xcframework.zip dist/SOURCES.txt "dist/nestopia-${TAG}-source.tar.gz"
       - name: Bump Package.swift
         if: inputs.bump_manifest
         env:

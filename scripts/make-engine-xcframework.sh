@@ -27,18 +27,18 @@ for slice in \
     tvos-arm64 \
     tvos-arm64_x86_64-simulator \
     macos-arm64_x86_64; do
-    library="$SLICES_DIR/$slice/libCNESCore.a"
+    library="$SLICES_DIR/$slice/libCNestopiaCore.a"
     headers="$SLICES_DIR/$slice/Headers"
     test -f "$library" || { echo "Missing slice library: $library" >&2; exit 1; }
-    test -f "$headers/nes_engine.h" || { echo "Missing headers: $headers" >&2; exit 1; }
+    test -f "$headers/nestopia_engine.h" || { echo "Missing headers: $headers" >&2; exit 1; }
     ARGS+=(-library "$library" -headers "$headers")
 done
 
-rm -rf "$OUTPUT_DIR/CNESCore.xcframework" "$OUTPUT_DIR/CNESCore.xcframework.zip"
-xcodebuild -create-xcframework "${ARGS[@]}" -output "$OUTPUT_DIR/CNESCore.xcframework"
+rm -rf "$OUTPUT_DIR/CNestopiaCore.xcframework" "$OUTPUT_DIR/CNestopiaCore.xcframework.zip"
+xcodebuild -create-xcframework "${ARGS[@]}" -output "$OUTPUT_DIR/CNestopiaCore.xcframework"
 
 {
-    echo "nes prebuilt CNESCore"
+    echo "nestopia prebuilt CNestopiaCore"
     echo
     echo "wrapper commit:  $(git -C "$REPO_ROOT" rev-parse HEAD)"
     echo "upstream commit: $(git -C "$REPO_ROOT/nestopia" rev-parse HEAD)"
@@ -48,18 +48,18 @@ xcodebuild -create-xcframework "${ARGS[@]}" -output "$OUTPUT_DIR/CNESCore.xcfram
     echo "Corresponding source consists of the upstream commit and wrapper commit above."
 } > "$OUTPUT_DIR/SOURCES.txt"
 
-cp "$REPO_ROOT/LICENSE" "$OUTPUT_DIR/CNESCore.xcframework/LICENSE"
-cp "$OUTPUT_DIR/SOURCES.txt" "$OUTPUT_DIR/CNESCore.xcframework/SOURCES.txt"
+cp "$REPO_ROOT/LICENSE" "$OUTPUT_DIR/CNestopiaCore.xcframework/LICENSE"
+cp "$OUTPUT_DIR/SOURCES.txt" "$OUTPUT_DIR/CNestopiaCore.xcframework/SOURCES.txt"
 
 (
     cd "$OUTPUT_DIR"
-    ditto -c -k --sequesterRsrc --keepParent CNESCore.xcframework CNESCore.xcframework.zip
+    ditto -c -k --sequesterRsrc --keepParent CNestopiaCore.xcframework CNestopiaCore.xcframework.zip
 )
-unzip -p "$OUTPUT_DIR/CNESCore.xcframework.zip" CNESCore.xcframework/LICENSE | cmp "$REPO_ROOT/LICENSE" -
+unzip -p "$OUTPUT_DIR/CNestopiaCore.xcframework.zip" CNestopiaCore.xcframework/LICENSE | cmp "$REPO_ROOT/LICENSE" -
 
-export NES_BUILD_FROM_SOURCE=1
+export NESTOPIA_BUILD_FROM_SOURCE=1
 swift package --package-path "$REPO_ROOT" compute-checksum \
-    "$OUTPUT_DIR/CNESCore.xcframework.zip" > "$OUTPUT_DIR/checksum.txt"
+    "$OUTPUT_DIR/CNestopiaCore.xcframework.zip" > "$OUTPUT_DIR/checksum.txt"
 
-echo "Created CNESCore.xcframework.zip"
+echo "Created CNestopiaCore.xcframework.zip"
 echo "Checksum: $(cat "$OUTPUT_DIR/checksum.txt")"

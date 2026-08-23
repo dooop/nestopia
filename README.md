@@ -1,4 +1,4 @@
-# nes
+# Nestopia
 
 An 8-bit cartridge-console engine for Apple and Android, backed by the unmodified [Nestopia](https://github.com/0ldsk00l/nestopia) core.
 
@@ -8,10 +8,10 @@ The repository follows the same boundary model as `swift-scummvm`:
 nestopia/                 upstream git submodule; read-only
 swift/
   Sources/NestopiaCore   read-only symlink into the submodule
-  Sources/NESCoreBridge  portable C/C++ facade
-  Sources/NES            SwiftUI library for iOS, tvOS and macOS
+  Sources/NestopiaCoreBridge  portable C/C++ facade
+  Sources/Nestopia       SwiftUI library for iOS, tvOS and macOS
 android/
-  nes                    Compose AAR + JNI/CMake host
+  nestopia               Compose AAR + JNI/CMake host
   app                    phone/tablet/TV sample
 scripts/                 build and validation entry points
 ```
@@ -23,14 +23,14 @@ The shared bridge implements ROM loading, PAL/NTSC timing, 32-bit video, mono PC
 Requirements: Xcode 16+, Swift 6 toolchain. Supported deployment targets are iOS 17+, tvOS 17+, and macOS 15+.
 
 ```swift
-import NES
+import Nestopia
 import SwiftUI
 
 struct GameScreen: View {
     let romURL: URL
 
     var body: some View {
-        NES(rom: romURL)
+        Nestopia(rom: romURL)
     }
 }
 ```
@@ -39,31 +39,31 @@ Build from the repository root:
 
 ```sh
 git submodule update --init
-NES_BUILD_FROM_SOURCE=1 swift build
-NES_BUILD_FROM_SOURCE=1 xcodebuild -scheme nes -destination 'generic/platform=iOS' build
+NESTOPIA_BUILD_FROM_SOURCE=1 swift build
+NESTOPIA_BUILD_FROM_SOURCE=1 xcodebuild -scheme nestopia -destination 'generic/platform=iOS' build
 ```
 
 ### Apple package modes
 
-The public `NES` Swift target is always compiled from source. Its `CNESCore` dependency can be consumed in two modes while keeping the same module graph:
+The public `Nestopia` Swift target is always compiled from source. Its `CNestopiaCore` dependency can be consumed in two modes while keeping the same module graph:
 
-- **Binary mode (consumer default after the first engine release):** SwiftPM downloads `CNESCore.xcframework.zip` from the release pinned in `Package.swift`. The Nestopia submodule is not required.
-- **Source mode:** set `NES_BUILD_FROM_SOURCE=1` to compile `CNESCore` from the `nestopia/` submodule. Use this for engine and bridge development.
+- **Binary mode (consumer default after the first engine release):** SwiftPM downloads `CNestopiaCore.xcframework.zip` from the release pinned in `Package.swift`. The Nestopia submodule is not required.
+- **Source mode:** set `NESTOPIA_BUILD_FROM_SOURCE=1` to compile `CNestopiaCore` from the `nestopia/` submodule. Use this for engine and bridge development.
 
 The manifest falls back to source mode while it still contains the placeholder binary checksum. Run `swift package reset` after switching modes in an existing checkout. Release automation builds iOS, iOS Simulator, tvOS, tvOS Simulator, and universal macOS slices, validates the resulting local XCFramework, and then updates the release URL and checksum through a pull request.
 
-`NES` starts on appearance and stops on disappearance. `NESView(engine:)` and `NESEngine` are public for hosts that need explicit lifecycle control, state slots, or custom controls. Touch controls are included. Apple game controllers and keyboards are mapped automatically (D-pad, A/B, Start/Select). Connecting an external controller hides the on-screen controls. tvOS never displays touch controls and instead asks the player to connect a controller when none is available.
+`Nestopia` starts on appearance and stops on disappearance. `NestopiaView(engine:)` and `NestopiaEngine` are public for hosts that need explicit lifecycle control, state slots, or custom controls. Touch controls are included. Apple game controllers and keyboards are mapped automatically (D-pad, A/B, Start/Select). Connecting an external controller hides the on-screen controls. tvOS never displays touch controls and instead asks the player to connect a controller when none is available.
 
 The on-screen controller supports the default adaptive `system` theme plus `nes` and `famicom` themes with their original palettes. Every on-screen button provides tactile press feedback by default; set `hapticsEnabled` to `false` to disable it. Automatic presentation uses a controller body when space permits and switches to a translucent overlay in landscape or compact-height containers. The controller body uses the host app name by default; `controllerLabel` can replace it or hide it with an empty string. A host can force either mode and replace any palette color:
 
 ```swift
-NES(
+Nestopia(
     rom: romURL,
-    controllerConfiguration: NESControllerConfiguration(
+    controllerConfiguration: NestopiaControllerConfiguration(
         theme: .famicom,
         presentationMode: .automatic,
         controllerLabel: "My App",
-        colors: NESControllerColorOverrides(actionButtons: .pink)
+        colors: NestopiaControllerColorOverrides(actionButtons: .pink)
     )
 )
 ```
@@ -72,11 +72,11 @@ The Apple system theme uses native Liquid Glass on Apple 26 platforms and falls 
 
 ## Android
 
-Requirements: JDK 17, Android SDK 37, CMake 3.22.1, and NDK 29. The default ABIs are `arm64-v8a,x86_64`; override them with `-Pnes.abis=...`.
+Requirements: JDK 17, Android SDK 37, CMake 3.22.1, and NDK 29. The default ABIs are `arm64-v8a,x86_64`; override them with `-Pnestopia.abis=...`.
 
 ```kotlin
-NES(
-    configuration = NESConfiguration(romUri = documentUri),
+Nestopia(
+    configuration = NestopiaConfiguration(romUri = documentUri),
     modifier = Modifier.fillMaxSize(),
 )
 ```
@@ -84,43 +84,42 @@ NES(
 Build the Compose AAR and sample APK:
 
 ```sh
-./gradlew :nes:assembleDebug
+./gradlew :nestopia:assembleDebug
 ./gradlew :app:assembleLocalDebug
 ```
 
-The Android application id is `nestopia.app` (Android application IDs require at least two
-segments); the library namespace and public Kotlin package are `nestopia`.
+The Android application ID is `net.sourceforge.nestopia`. The library namespace and public Kotlin package are also `net.sourceforge.nestopia`; the sample app's source namespace is `net.sourceforge.nestopia.app`.
 
 ### Android package modes
 
 From a source checkout, depend directly on the library project:
 
 ```kotlin
-implementation(project(":nes"))
+implementation(project(":nestopia"))
 ```
 
-Released AARs are published to GitHub Packages as `io.github.dooop:nes:<version>`. Configure the `https://maven.pkg.github.com/dooop/nes` repository with GitHub Packages credentials, then use:
+Released AARs are published to GitHub Packages as `io.github.dooop:nestopia:<version>`. Configure the `https://maven.pkg.github.com/dooop/nestopia` repository with GitHub Packages credentials, then use:
 
 ```kotlin
-implementation("io.github.dooop:nes:<version>")
+implementation("io.github.dooop:nestopia:<version>")
 ```
 
-The AAR and sample APK contain the full GPL terms under `assets/licenses/`. Maven releases also publish `nes-<version>-complete-source.tar.gz` with classifier `complete-source`; it contains the exact wrapper and upstream source used for the binary. Apple XCFramework archives embed the same license and source provenance at their root.
+The AAR and sample APK contain the full GPL terms under `assets/licenses/`. Maven releases also publish `nestopia-<version>-complete-source.tar.gz` with classifier `complete-source`; it contains the exact wrapper and upstream source used for the binary. Apple XCFramework archives embed the same license and source provenance at their root.
 
-The sample has `local` and `maven` flavors. `localDebug` consumes the source project, `localRelease` consumes an AAR passed with `-Pnes.releaseAar=...`, and the `maven` variants consume the published package.
+The sample has `local` and `maven` flavors. `localDebug` consumes the source project, `localRelease` consumes an AAR passed with `-Pnestopia.releaseAar=...`, and the `maven` variants consume the published package.
 
 The sample uses Android's document picker and declares phone, tablet, gamepad, and Android TV compatibility. Compose touch controls and Android key/gamepad events map to the same native input masks as Apple, including analog sticks and up to two players. Connecting a physical controller hides the on-screen controls. Android TV never displays touch controls and instead asks the player to connect a controller when none is available.
 
 Compose exposes the matching controller options. The system theme is derived from the surrounding Material 3 theme, including its primary, secondary, surface, and content colors:
 
 ```kotlin
-NES(
-    configuration = NESConfiguration(romUri = documentUri),
-    controllerConfiguration = NESControllerConfiguration(
-        theme = NESControllerTheme.NES,
-        presentationMode = NESControllerPresentationMode.Automatic,
+Nestopia(
+    configuration = NestopiaConfiguration(romUri = documentUri),
+    controllerConfiguration = NestopiaControllerConfiguration(
+        theme = NestopiaControllerTheme.NES,
+        presentationMode = NestopiaControllerPresentationMode.Automatic,
         controllerLabel = "My App",
-        colors = NESControllerColorOverrides(actionButtons = Color(0xFFE91E63)),
+        colors = NestopiaControllerColorOverrides(actionButtons = Color(0xFFE91E63)),
     ),
     modifier = Modifier.fillMaxSize(),
 )
