@@ -125,7 +125,12 @@ jobs:
             key: tvos
             destination: "generic/platform=tvOS"
     steps:
+      # The Nestopia target ships Resources/NstDatabase.xml as a symlink into the
+      # nestopia/ submodule, so even binary-mode builds need the submodule checked out.
       - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          fetch-depth: 1
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
       - name: Check that an engine release is referenced
