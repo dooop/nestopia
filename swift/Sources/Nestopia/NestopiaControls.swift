@@ -38,7 +38,9 @@ public struct NestopiaControls: View {
     }
 
     private func resolvedMode(for size: CGSize) -> NestopiaControllerPresentationMode {
-        guard configuration.presentationMode == .automatic else { return configuration.presentationMode }
+        guard configuration.presentationMode == .automatic else {
+            return configuration.presentationMode
+        }
         return size.width > size.height || size.height < 300 ? .overlay : .gamepad
     }
 
@@ -76,8 +78,10 @@ public struct NestopiaControls: View {
         ZStack(alignment: .bottom) {
             dPad(metrics: metrics, palette: palette, opacity: configuration.overlayOpacity)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-            utilityButtons(metrics: metrics, palette: palette, opacity: configuration.overlayOpacity)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            utilityButtons(
+                metrics: metrics, palette: palette, opacity: configuration.overlayOpacity
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
             actionButtons(metrics: metrics, palette: palette, opacity: configuration.overlayOpacity)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
         }
@@ -122,13 +126,15 @@ public struct NestopiaControls: View {
             GridRow {
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
                 control(
-                    "▲", .up, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    "▲", .up, size: CGSize(width: metrics.direction, height: metrics.direction),
+                    shape: .rounded,
                     color: palette.dPad, palette: palette, opacity: opacity)
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
             }
             GridRow {
                 control(
-                    "◀", .left, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    "◀", .left, size: CGSize(width: metrics.direction, height: metrics.direction),
+                    shape: .rounded,
                     color: palette.dPad, palette: palette, opacity: opacity)
                 ZStack {
                     Rectangle().fill(palette.dPad.opacity(opacity))
@@ -139,13 +145,15 @@ public struct NestopiaControls: View {
                 }
                 .frame(width: metrics.direction, height: metrics.direction)
                 control(
-                    "▶", .right, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    "▶", .right, size: CGSize(width: metrics.direction, height: metrics.direction),
+                    shape: .rounded,
                     color: palette.dPad, palette: palette, opacity: opacity)
             }
             GridRow {
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
                 control(
-                    "▼", .down, size: CGSize(width: metrics.direction, height: metrics.direction), shape: .rounded,
+                    "▼", .down, size: CGSize(width: metrics.direction, height: metrics.direction),
+                    shape: .rounded,
                     color: palette.dPad, palette: palette, opacity: opacity)
                 Color.clear.frame(width: metrics.direction, height: metrics.direction)
             }
@@ -155,10 +163,12 @@ public struct NestopiaControls: View {
     private func utilityButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
         HStack(spacing: metrics.utilitySpacing) {
             control(
-                "SELECT", .select, size: metrics.utility, shape: .capsule, color: palette.utility, palette: palette,
+                "SELECT", .select, size: metrics.utility, shape: .capsule, color: palette.utility,
+                palette: palette,
                 opacity: opacity)
             control(
-                "START", .start, size: metrics.utility, shape: .capsule, color: palette.utility, palette: palette,
+                "START", .start, size: metrics.utility, shape: .capsule, color: palette.utility,
+                palette: palette,
                 opacity: opacity)
         }
     }
@@ -166,26 +176,33 @@ public struct NestopiaControls: View {
     private func actionButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
         HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
             control(
-                "B", .b, size: metrics.action, shape: .circle, color: palette.action, palette: palette, opacity: opacity
+                "B", .b, size: metrics.action, shape: .circle, color: palette.action,
+                palette: palette, opacity: opacity
             )
             .padding(.bottom, metrics.action.height * 0.22)
             control(
-                "A", .a, size: metrics.action, shape: .circle, color: palette.action, palette: palette, opacity: opacity
+                "A", .a, size: metrics.action, shape: .circle, color: palette.action,
+                palette: palette, opacity: opacity
             )
         }
     }
 
     @ViewBuilder
     private func control(
-        _ label: String, _ button: NestopiaControllerButton, size: CGSize, shape: ControlShape, color: Color,
+        _ label: String, _ button: NestopiaControllerButton, size: CGSize, shape: ControlShape,
+        color: Color,
         palette: Palette, opacity: Double
     ) -> some View {
         #if os(tvOS)
             Button {
                 engine.setButton(button, pressed: true)
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { engine.setButton(button, pressed: false) }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    engine.setButton(button, pressed: false)
+                }
             } label: {
-                controlLabel(label, size: size, shape: shape, color: color, palette: palette, opacity: opacity)
+                controlLabel(
+                    label, size: size, shape: shape, color: color, palette: palette,
+                    opacity: opacity)
             }
             .buttonStyle(.plain)
         #else
@@ -193,14 +210,17 @@ public struct NestopiaControls: View {
                 hapticsEnabled: configuration.hapticsEnabled,
                 onPressedChange: { engine.setButton(button, pressed: $0) },
                 content: {
-                    controlLabel(label, size: size, shape: shape, color: color, palette: palette, opacity: opacity)
+                    controlLabel(
+                        label, size: size, shape: shape, color: color, palette: palette,
+                        opacity: opacity)
                 }
             )
         #endif
     }
 
     private func controlLabel(
-        _ label: String, size: CGSize, shape: ControlShape, color: Color, palette: Palette, opacity: Double
+        _ label: String, size: CGSize, shape: ControlShape, color: Color, palette: Palette,
+        opacity: Double
     ) -> some View {
         Text(label)
             .font(.system(size: label.count == 1 ? 20 : 9, weight: .black, design: .rounded))
@@ -218,7 +238,8 @@ public struct NestopiaControls: View {
             #if compiler(>=6.2)
                 if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
                     surface.fill(.clear)
-                        .glassEffect(.regular.tint(color.opacity(opacity)).interactive(), in: surface)
+                        .glassEffect(
+                            .regular.tint(color.opacity(opacity)).interactive(), in: surface)
                 } else {
                     materialSurface(surface, color: color, opacity: opacity)
                 }
@@ -276,20 +297,25 @@ private struct Palette {
         switch theme {
         case .system:
             defaults = (
-                .primary.opacity(0.08), .primary.opacity(0.68), .accentColor, .primary.opacity(0.55), .white, .primary,
+                .primary.opacity(0.08), .primary.opacity(0.68), .accentColor,
+                .primary.opacity(0.55), .white, .primary,
                 .primary.opacity(0.12)
             )
         case .nes:
             defaults = (
                 Color(red: 0.70, green: 0.70, blue: 0.68), Color(white: 0.10),
-                Color(red: 0.67, green: 0.05, blue: 0.12), Color(white: 0.16), .white, Color(white: 0.15),
+                Color(red: 0.67, green: 0.05, blue: 0.12), Color(white: 0.16), .white,
+                Color(white: 0.15),
                 Color(white: 0.12)
             )
         case .famicom:
             defaults = (
-                Color(red: 0.91, green: 0.86, blue: 0.69), Color(red: 0.34, green: 0.04, blue: 0.09),
-                Color(red: 0.63, green: 0.03, blue: 0.08), Color(red: 0.43, green: 0.05, blue: 0.10),
-                Color(red: 0.98, green: 0.91, blue: 0.72), Color(red: 0.40, green: 0.04, blue: 0.09),
+                Color(red: 0.91, green: 0.86, blue: 0.69),
+                Color(red: 0.34, green: 0.04, blue: 0.09),
+                Color(red: 0.63, green: 0.03, blue: 0.08),
+                Color(red: 0.43, green: 0.05, blue: 0.10),
+                Color(red: 0.98, green: 0.91, blue: 0.72),
+                Color(red: 0.40, green: 0.04, blue: 0.09),
                 Color(red: 0.34, green: 0.04, blue: 0.09)
             )
         }
@@ -304,36 +330,36 @@ private struct Palette {
 }
 
 #if !os(tvOS)
-private struct PressableControl<Content: View>: View {
-    let hapticsEnabled: Bool
-    let onPressedChange: (Bool) -> Void
-    @ViewBuilder let content: () -> Content
-    @State private var isPressed = false
+    private struct PressableControl<Content: View>: View {
+        let hapticsEnabled: Bool
+        let onPressedChange: (Bool) -> Void
+        @ViewBuilder let content: () -> Content
+        @State private var isPressed = false
 
-    var body: some View {
-        content()
-            .scaleEffect(isPressed ? 0.92 : 1)
-            .brightness(isPressed ? -0.12 : 0)
-            .animation(.easeOut(duration: 0.08), value: isPressed)
-            .gesture(
-                DragGesture(minimumDistance: 0)
-                    .onChanged { _ in
-                        guard !isPressed else { return }
-                        isPressed = true
-                        onPressedChange(true)
-                        if hapticsEnabled { performControllerHaptic() }
-                    }
-                    .onEnded { _ in release() }
-            )
-            .onDisappear { release() }
-    }
+        var body: some View {
+            content()
+                .scaleEffect(isPressed ? 0.92 : 1)
+                .brightness(isPressed ? -0.12 : 0)
+                .animation(.easeOut(duration: 0.08), value: isPressed)
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .onChanged { _ in
+                            guard !isPressed else { return }
+                            isPressed = true
+                            onPressedChange(true)
+                            if hapticsEnabled { performControllerHaptic() }
+                        }
+                        .onEnded { _ in release() }
+                )
+                .onDisappear { release() }
+        }
 
-    private func release() {
-        guard isPressed else { return }
-        isPressed = false
-        onPressedChange(false)
+        private func release() {
+            guard isPressed else { return }
+            isPressed = false
+            onPressedChange(false)
+        }
     }
-}
 #endif
 
 private func performControllerHaptic() {

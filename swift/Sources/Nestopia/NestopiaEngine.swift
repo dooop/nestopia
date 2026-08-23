@@ -56,21 +56,25 @@ public final class NestopiaEngine: ObservableObject {
         queue.async { [weak self] in
             guard let self else { return }
             self.securityScopedROM = configuration.romURL.startAccessingSecurityScopedResource()
-            let databasePath = Bundle.module.url(forResource: "NstDatabase", withExtension: "xml")?.path
+            let databasePath = Bundle.module.url(forResource: "NstDatabase", withExtension: "xml")?
+                .path
             guard let core = nestopia_engine_create(databasePath) else {
                 self.fail("Nestopia konnte nicht initialisiert werden.")
                 return
             }
             self.core = core
 
-            let saveURL = self.saveURL(for: configuration.romURL, directory: configuration.saveDirectory)
+            let saveURL = self.saveURL(
+                for: configuration.romURL, directory: configuration.saveDirectory)
             do {
                 try FileManager.default.createDirectory(
                     at: saveURL.deletingLastPathComponent(),
                     withIntermediateDirectories: true
                 )
             } catch {
-                self.fail("Der Speicherordner konnte nicht erstellt werden: \(error.localizedDescription)")
+                self.fail(
+                    "Der Speicherordner konnte nicht erstellt werden: \(error.localizedDescription)"
+                )
                 return
             }
 
@@ -194,7 +198,8 @@ public final class NestopiaEngine: ObservableObject {
         ).first!
 
         let fileName = romURL.deletingPathExtension().lastPathComponent
-        let baseDirectory = applicationSupport.appendingPathComponent("Nestopia/Saves", isDirectory: true)
+        let baseDirectory = applicationSupport.appendingPathComponent(
+            "Nestopia/Saves", isDirectory: true)
         let destination =
             baseDirectory
             .appendingPathComponent(fileName)
@@ -208,7 +213,8 @@ public final class NestopiaEngine: ObservableObject {
         if !FileManager.default.fileExists(atPath: destination.path),
             FileManager.default.fileExists(atPath: legacySave.path)
         {
-            try? FileManager.default.createDirectory(at: baseDirectory, withIntermediateDirectories: true)
+            try? FileManager.default.createDirectory(
+                at: baseDirectory, withIntermediateDirectories: true)
             do {
                 try FileManager.default.moveItem(at: legacySave, to: destination)
             } catch {

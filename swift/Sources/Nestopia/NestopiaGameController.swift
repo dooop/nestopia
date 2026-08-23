@@ -49,7 +49,8 @@ final class NestopiaGameController {
             releaseButtons(player: player)
         }
 
-        boundControllers = Array(GCController.controllers().filter { $0.extendedGamepad != nil }.prefix(2))
+        boundControllers = Array(
+            GCController.controllers().filter { $0.extendedGamepad != nil }.prefix(2))
         for (player, controller) in boundControllers.enumerated() {
             bind(controller, player: player)
         }
@@ -62,7 +63,8 @@ final class NestopiaGameController {
             self?.engine?.setButton(.a, player: player, pressed: pad.buttonA.isPressed)
             self?.engine?.setButton(.b, player: player, pressed: pad.buttonB.isPressed)
             self?.engine?.setButton(.start, player: player, pressed: pad.buttonMenu.isPressed)
-            self?.engine?.setButton(.select, player: player, pressed: pad.buttonOptions?.isPressed == true)
+            self?.engine?.setButton(
+                .select, player: player, pressed: pad.buttonOptions?.isPressed == true)
             self?.engine?.setButton(.up, player: player, pressed: pad.dpad.up.isPressed)
             self?.engine?.setButton(.down, player: player, pressed: pad.dpad.down.isPressed)
             self?.engine?.setButton(.left, player: player, pressed: pad.dpad.left.isPressed)
@@ -77,7 +79,8 @@ final class NestopiaGameController {
     }
 
     private func bindKeyboard() {
-        GCKeyboard.coalesced?.keyboardInput?.keyChangedHandler = { [weak self] _, _, keyCode, pressed in
+        GCKeyboard.coalesced?.keyboardInput?.keyChangedHandler = {
+            [weak self] _, _, keyCode, pressed in
             let button: NestopiaControllerButton?
             switch keyCode {
             case .upArrow: button = .up

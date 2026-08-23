@@ -73,7 +73,8 @@ public struct NestopiaView: View {
             ProgressView().tint(.white)
         case .failed(let message):
             ContentUnavailableView(
-                "ROM konnte nicht gestartet werden", systemImage: "exclamationmark.triangle", description: Text(message)
+                "ROM konnte nicht gestartet werden", systemImage: "exclamationmark.triangle",
+                description: Text(message)
             )
             .foregroundStyle(.white)
         default:

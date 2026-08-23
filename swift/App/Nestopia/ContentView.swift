@@ -8,37 +8,37 @@ import UniformTypeIdentifiers
 struct ContentView: View {
     @State private var romURL: URL?
     #if !os(tvOS)
-    @State private var isShowingROMPicker = false
+        @State private var isShowingROMPicker = false
     #endif
 
     var body: some View {
         #if os(tvOS)
-        ContentUnavailableView(
-            "No game file selected",
-            systemImage: "doc",
-            description: Text("File selection is not available on Apple TV.")
-        )
+            ContentUnavailableView(
+                "No game file selected",
+                systemImage: "doc",
+                description: Text("File selection is not available on Apple TV.")
+            )
         #else
-        Group {
-            if let romURL {
-                Nestopia(rom: romURL)
-                    .id(romURL)
-            } else {
-                Button("Open game file") {
-                    isShowingROMPicker = true
+            Group {
+                if let romURL {
+                    Nestopia(rom: romURL)
+                        .id(romURL)
+                } else {
+                    Button("Open game file") {
+                        isShowingROMPicker = true
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
-                .buttonStyle(.borderedProminent)
             }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .fileImporter(
-            isPresented: $isShowingROMPicker,
-            allowedContentTypes: [.item],
-            allowsMultipleSelection: false
-        ) { result in
-            guard case .success(let urls) = result else { return }
-            romURL = urls.first
-        }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .fileImporter(
+                isPresented: $isShowingROMPicker,
+                allowedContentTypes: [.item],
+                allowsMultipleSelection: false
+            ) { result in
+                guard case .success(let urls) = result else { return }
+                romURL = urls.first
+            }
         #endif
     }
 }

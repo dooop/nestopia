@@ -30,17 +30,25 @@ import Testing
 }
 
 @Test func controllerConfigurationPreservesCustomControllerLabel() {
-    #expect(NestopiaControllerConfiguration(controllerLabel: "My App").resolvedControllerLabel == "My App")
+    #expect(
+        NestopiaControllerConfiguration(controllerLabel: "My App").resolvedControllerLabel
+            == "My App")
     #expect(NestopiaControllerConfiguration(controllerLabel: "").resolvedControllerLabel.isEmpty)
 }
 
 @Test func externalControllerHidesOnScreenControls() {
-    #expect(shouldShowOnScreenControls(requested: true, isTelevision: false, hasExternalController: false))
-    #expect(!shouldShowOnScreenControls(requested: true, isTelevision: false, hasExternalController: true))
+    #expect(
+        shouldShowOnScreenControls(
+            requested: true, isTelevision: false, hasExternalController: false))
+    #expect(
+        !shouldShowOnScreenControls(
+            requested: true, isTelevision: false, hasExternalController: true))
 }
 
 @Test func televisionNeverShowsControlsAndPromptsWithoutController() {
-    #expect(!shouldShowOnScreenControls(requested: true, isTelevision: true, hasExternalController: false))
+    #expect(
+        !shouldShowOnScreenControls(
+            requested: true, isTelevision: true, hasExternalController: false))
     #expect(shouldShowControllerConnectionPrompt(isTelevision: true, hasExternalController: false))
     #expect(!shouldShowControllerConnectionPrompt(isTelevision: true, hasExternalController: true))
 }
