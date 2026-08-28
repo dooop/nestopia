@@ -55,6 +55,32 @@ void setError(NestopiaEngine *engine, const char *message)
     if (engine != nullptr) engine->lastError = message;
 }
 
+// Persistent data is written through a sibling temporary file so a crash or a
+// power loss during an autosave leaves the previous file intact.
+template<typename Writer>
+bool writeAtomically(const std::string &path, Writer writer)
+{
+    if (path.empty()) return false;
+    const std::string temporaryPath = path + ".tmp";
+    {
+        std::ofstream stream(temporaryPath, std::ios::out | std::ios::binary | std::ios::trunc);
+        if (!stream.good() || !writer(stream)) {
+            std::remove(temporaryPath.c_str());
+            return false;
+        }
+        stream.flush();
+        if (!stream.good()) {
+            std::remove(temporaryPath.c_str());
+            return false;
+        }
+    }
+    if (std::rename(temporaryPath.c_str(), path.c_str()) != 0) {
+        std::remove(temporaryPath.c_str());
+        return false;
+    }
+    return true;
+}
+
 void NST_CALLBACK fileIO(void *context, Nes::Api::User::File &file)
 {
     auto *engine = static_cast<NestopiaEngine *>(context);
@@ -69,8 +95,10 @@ void NST_CALLBACK fileIO(void *context, Nes::Api::User::File &file)
         }
         case Nes::Api::User::File::SAVE_BATTERY:
         case Nes::Api::User::File::SAVE_EEPROM: {
-            std::ofstream stream(engine->batteryPath, std::ios::out | std::ios::binary | std::ios::trunc);
-            if (stream.good()) file.GetContent(stream);
+            writeAtomically(engine->batteryPath, [&file](std::ofstream &stream) {
+                file.GetContent(stream);
+                return true;
+            });
             break;
         }
         default:
@@ -226,8 +254,9 @@ void nestopia_engine_reset(NestopiaEngine *engine, bool hardReset)
 bool nestopia_engine_save_state(NestopiaEngine *engine, const char *path)
 {
     if (engine == nullptr || !engine->loaded || path == nullptr) return false;
-    std::ofstream stream(path, std::ios::out | std::ios::binary | std::ios::trunc);
-    return stream.good() && NES_SUCCEEDED(engine->machine.SaveState(stream));
+    return writeAtomically(path, [engine](std::ofstream &stream) {
+        return NES_SUCCEEDED(engine->machine.SaveState(stream));
+    });
 }
 
 bool nestopia_engine_load_state(NestopiaEngine *engine, const char *path)

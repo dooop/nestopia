@@ -20,7 +20,9 @@ public final class NestopiaEngine: ObservableObject {
     private let queue = DispatchQueue(label: "nestopia.swift.engine", qos: .userInteractive)
     private var core: OpaquePointer?
     private var timer: DispatchSourceTimer?
+    private var autosaveTimer: DispatchSourceTimer?
     private var audio: NestopiaAudioOutput?
+    private var saveLocations: NestopiaSaveLocations?
     private var controller: NestopiaGameController?
     private var paused = false
     private var securityScopedROM = false
@@ -64,29 +66,36 @@ public final class NestopiaEngine: ObservableObject {
             }
             self.core = core
 
-            let saveURL = self.saveURL(
-                for: configuration.romURL, directory: configuration.saveDirectory)
+            let locations: NestopiaSaveLocations
             do {
-                try FileManager.default.createDirectory(
-                    at: saveURL.deletingLastPathComponent(),
-                    withIntermediateDirectories: true
-                )
+                locations = try NestopiaSaveLocator.resolve(
+                    romURL: configuration.romURL, directory: configuration.saveDirectory)
             } catch {
                 self.fail(
                     "Der Speicherordner konnte nicht erstellt werden: \(error.localizedDescription)"
                 )
                 return
             }
+            self.saveLocations = locations
 
-            guard nestopia_engine_load_rom(core, configuration.romURL.path, saveURL.path) else {
+            guard nestopia_engine_load_rom(core, configuration.romURL.path, locations.battery.path)
+            else {
                 let message = String(cString: nestopia_engine_last_error(core))
                 self.fail(message)
                 return
             }
 
+            // A stale or incompatible autosave must not keep the game from starting.
+            if configuration.autosave.isEnabled,
+                FileManager.default.fileExists(atPath: locations.autosave.path)
+            {
+                _ = nestopia_engine_load_state(core, locations.autosave.path)
+            }
+
             self.audio = NestopiaAudioOutput()
             self.audio?.start()
             self.installTimer(core: core)
+            self.installAutosaveTimer()
             DispatchQueue.main.async {
                 self.state = .running
             }
@@ -95,9 +104,11 @@ public final class NestopiaEngine: ObservableObject {
 
     public func pause() {
         queue.async { [weak self] in
-            self?.paused = true
-            self?.audio?.pause()
-            DispatchQueue.main.async { self?.state = .paused }
+            guard let self else { return }
+            self.paused = true
+            self.audio?.pause()
+            self.writeAutosave()
+            DispatchQueue.main.async { self.state = .paused }
         }
     }
 
@@ -144,6 +155,27 @@ public final class NestopiaEngine: ObservableObject {
         }
     }
 
+    /// Location of the automatic save state, once the session resolved its save directory.
+    public var autosaveURL: URL? {
+        queue.sync { saveLocations?.autosave }
+    }
+
+    /// Writes the automatic save state now. Does nothing while autosave is disabled.
+    @discardableResult
+    public func autosave() -> Bool {
+        queue.sync { writeAutosave() }
+    }
+
+    /// Removes the automatic save state so the next start begins a fresh game. A session that is
+    /// still running writes it again, so call this after ``stop()``.
+    @discardableResult
+    public func deleteAutosave() -> Bool {
+        queue.sync {
+            guard let url = saveLocations?.autosave else { return false }
+            return (try? FileManager.default.removeItem(at: url)) != nil
+        }
+    }
+
     private func installTimer(core: OpaquePointer) {
         let timer = DispatchSource.makeTimerSource(queue: queue)
         let duration = nestopia_engine_frame_duration(core)
@@ -151,6 +183,29 @@ public final class NestopiaEngine: ObservableObject {
         timer.setEventHandler { [weak self] in self?.runFrame(core: core) }
         self.timer = timer
         timer.resume()
+    }
+
+    private func installAutosaveTimer() {
+        guard configuration.autosave.isEnabled else { return }
+        let interval = configuration.autosave.resolvedInterval
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + interval, repeating: interval, leeway: .seconds(1))
+        timer.setEventHandler { [weak self] in
+            guard let self, !self.paused else { return }
+            self.writeAutosave()
+        }
+        autosaveTimer = timer
+        timer.resume()
+    }
+
+    /// Must run on `queue` so the native handle stays serialized.
+    @discardableResult
+    private func writeAutosave() -> Bool {
+        guard configuration.autosave.isEnabled,
+            let core,
+            let autosave = saveLocations?.autosave
+        else { return false }
+        return nestopia_engine_save_state(core, autosave.path)
     }
 
     private func runFrame(core: OpaquePointer) {
@@ -184,59 +239,23 @@ public final class NestopiaEngine: ObservableObject {
         DispatchQueue.main.async { [weak self] in self?.frame = image }
     }
 
-    private func saveURL(for romURL: URL, directory: URL?) -> URL {
-        if let directory {
-            return
-                directory
-                .appendingPathComponent(romURL.deletingPathExtension().lastPathComponent)
-                .appendingPathExtension("sav")
-        }
-
-        let applicationSupport = FileManager.default.urls(
-            for: .applicationSupportDirectory,
-            in: .userDomainMask
-        ).first!
-
-        let fileName = romURL.deletingPathExtension().lastPathComponent
-        let baseDirectory = applicationSupport.appendingPathComponent(
-            "Nestopia/Saves", isDirectory: true)
-        let destination =
-            baseDirectory
-            .appendingPathComponent(fileName)
-            .appendingPathExtension("sav")
-        let legacySave =
-            applicationSupport
-            .appendingPathComponent("NES/Saves", isDirectory: true)
-            .appendingPathComponent(fileName)
-            .appendingPathExtension("sav")
-
-        if !FileManager.default.fileExists(atPath: destination.path),
-            FileManager.default.fileExists(atPath: legacySave.path)
-        {
-            try? FileManager.default.createDirectory(
-                at: baseDirectory, withIntermediateDirectories: true)
-            do {
-                try FileManager.default.moveItem(at: legacySave, to: destination)
-            } catch {
-                try? FileManager.default.copyItem(at: legacySave, to: destination)
-            }
-        }
-        return destination
-    }
-
     private func fail(_ message: String) {
-        stopSynchronously(finalState: .failed(message))
+        stopSynchronously(finalState: .failed(message), autosaves: false)
     }
 
-    private func stopSynchronously(finalState: NestopiaState = .stopped) {
+    private func stopSynchronously(finalState: NestopiaState = .stopped, autosaves: Bool = true) {
         timer?.cancel()
         timer = nil
+        autosaveTimer?.cancel()
+        autosaveTimer = nil
         audio?.stop()
         audio = nil
+        if autosaves { writeAutosave() }
         if let core {
             nestopia_engine_destroy(core)
             self.core = nil
         }
+        saveLocations = nil
         if securityScopedROM {
             configuration.romURL.stopAccessingSecurityScopedResource()
             securityScopedROM = false

@@ -6,20 +6,26 @@ import Foundation
 /// Runtime options for one Nestopia session.
 public struct NestopiaConfiguration: Sendable, Equatable {
     public var romURL: URL
+    /// Directory holding the battery save and the autosave. `nil` uses
+    /// `Application Support/Nestopia/Saves`.
     public var saveDirectory: URL?
     public var automaticallyStarts: Bool
     public var showsTouchControls: Bool
+    /// Automatic save state behavior. Enabled by default.
+    public var autosave: NestopiaAutosaveConfiguration
 
     public init(
         romURL: URL,
         saveDirectory: URL? = nil,
         automaticallyStarts: Bool = true,
-        showsTouchControls: Bool = true
+        showsTouchControls: Bool = true,
+        autosave: NestopiaAutosaveConfiguration = .init()
     ) {
         self.romURL = romURL
         self.saveDirectory = saveDirectory
         self.automaticallyStarts = automaticallyStarts
         self.showsTouchControls = showsTouchControls
+        self.autosave = autosave
     }
 }
 

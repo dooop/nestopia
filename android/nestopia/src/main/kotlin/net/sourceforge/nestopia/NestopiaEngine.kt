@@ -8,6 +8,7 @@ import android.graphics.Bitmap
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.provider.OpenableColumns
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +36,7 @@ class NestopiaEngine(
     private var handle = 0L
     private var audioTrack: AudioTrack? = null
     private var ownsClaim = false
+    private var saveLocations: NestopiaSaveLocations? = null
     private val nativeLock = Any()
 
     fun start() {
@@ -54,7 +56,10 @@ class NestopiaEngine(
         val nextState = currentState.afterPauseRequest()
         if (nextState == currentState) return
         paused = true
-        synchronized(nativeLock) { audioTrack?.pause() }
+        synchronized(nativeLock) {
+            audioTrack?.pause()
+            writeAutosave()
+        }
         _state.value = nextState
     }
 
@@ -93,6 +98,19 @@ class NestopiaEngine(
             handle != 0L && NativeNestopia.loadState(handle, file.path)
         }
 
+    /** Location of the automatic save state, once the session resolved its save directory. */
+    val autosaveFile: File?
+        get() = synchronized(nativeLock) { saveLocations?.autosave }
+
+    /** Writes the automatic save state now. Does nothing while autosave is disabled. */
+    fun autosave(): Boolean = synchronized(nativeLock) { writeAutosave() }
+
+    /**
+     * Removes the automatic save state so the next start begins a fresh game. A session that is
+     * still running writes it again, so call this after [close].
+     */
+    fun clearAutosave(): Boolean = synchronized(nativeLock) { saveLocations?.autosave?.delete() == true }
+
     override fun close() {
         stopped = true
         executor.shutdownNow()
@@ -100,8 +118,10 @@ class NestopiaEngine(
             audioTrack?.stop()
             audioTrack?.release()
             audioTrack = null
+            writeAutosave()
             if (handle != 0L) NativeNestopia.destroy(handle)
             handle = 0
+            saveLocations = null
         }
         releaseClaim()
         _state.value = NestopiaState.Stopped
@@ -116,19 +136,21 @@ class NestopiaEngine(
                     database.outputStream().use(input::copyTo)
                 }
             }
-            val rom = File(runtimeDirectory, "game-${configuration.romUri.toString().hashCode()}.nes")
-            appContext.contentResolver.openInputStream(configuration.romUri).use { input ->
-                requireNotNull(input) { "Die ROM-Datei konnte nicht geöffnet werden." }
-                rom.outputStream().use(input::copyTo)
-            }
-            val saveDirectory = File(runtimeDirectory, "Saves").apply { mkdirs() }
-            val save = File(saveDirectory, "${rom.nameWithoutExtension}.sav")
+            val rom = cacheROM(runtimeDirectory)
+            val locations = resolveSaveLocations(runtimeDirectory, rom.identity)
 
             synchronized(nativeLock) {
                 if (stopped) return
                 handle = NativeNestopia.create(database.path)
                 check(handle != 0L) { "Nestopia konnte nicht initialisiert werden." }
-                check(NativeNestopia.loadROM(handle, rom.path, save.path)) { NativeNestopia.lastError(handle) }
+                check(NativeNestopia.loadROM(handle, rom.file.path, locations.battery.path)) {
+                    NativeNestopia.lastError(handle)
+                }
+                saveLocations = locations
+                // A stale or incompatible autosave must not keep the game from starting.
+                if (configuration.autosave.isEnabled && locations.autosave.isFile) {
+                    NativeNestopia.loadState(handle, locations.autosave.path)
+                }
                 audioTrack = createAudioTrack().also(AudioTrack::play)
             }
             _state.value = NestopiaState.Running
@@ -142,9 +164,65 @@ class NestopiaEngine(
             }
             audioTrack?.release()
             audioTrack = null
+            saveLocations = null
             releaseClaim()
             _state.value = NestopiaState.Failed(error.message ?: "Unbekannter Nestopia-Fehler")
         }
+    }
+
+    /**
+     * Copies the selected ROM into private storage and names it after its content digest so the
+     * save identity survives renames, re-picked documents, and changed content URIs.
+     */
+    private fun cacheROM(runtimeDirectory: File): CachedROM {
+        val romDirectory = File(runtimeDirectory, "ROMs").apply { mkdirs() }
+        val incoming = File(romDirectory, "incoming.tmp")
+        appContext.contentResolver.openInputStream(configuration.romUri).use { input ->
+            requireNotNull(input) { "Die ROM-Datei konnte nicht geöffnet werden." }
+            incoming.outputStream().use(input::copyTo)
+        }
+        val identity = NestopiaSaveLocator.identity(romDisplayName(), NestopiaSaveLocator.digest(incoming))
+        val destination = File(romDirectory, "$identity.nes")
+        destination.delete()
+        if (!incoming.renameTo(destination)) {
+            incoming.copyTo(destination, overwrite = true)
+            incoming.delete()
+        }
+        runtimeDirectory.listFiles { file -> file.isFile && file.name.startsWith("game-") }?.forEach(File::delete)
+        return CachedROM(destination, identity)
+    }
+
+    private fun romDisplayName(): String {
+        val provided =
+            runCatching {
+                appContext.contentResolver
+                    .query(configuration.romUri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                    ?.use { cursor -> if (cursor.moveToFirst() && !cursor.isNull(0)) cursor.getString(0) else null }
+            }.getOrNull()
+        val name = (provided ?: configuration.romUri.lastPathSegment).orEmpty().substringAfterLast('/')
+        return name.substringBeforeLast('.', name).ifEmpty { NestopiaSaveLocator.FALLBACK_DISPLAY_NAME }
+    }
+
+    private fun resolveSaveLocations(
+        runtimeDirectory: File,
+        identity: String,
+    ): NestopiaSaveLocations {
+        val defaultDirectory = File(runtimeDirectory, "Saves")
+        val directory = (configuration.saveDirectory ?: defaultDirectory).apply { mkdirs() }
+        val locations = NestopiaSaveLocator.locations(directory, identity)
+        val legacyName = "game-${configuration.romUri.toString().hashCode()}.${NestopiaSaveLocator.BATTERY_EXTENSION}"
+        NestopiaSaveLocator.migrateLegacyBattery(
+            listOf(File(directory, legacyName), File(defaultDirectory, legacyName)),
+            locations.battery,
+        )
+        return locations
+    }
+
+    /** Must run while [nativeLock] is held so the native handle stays serialized. */
+    private fun writeAutosave(): Boolean {
+        if (!configuration.autosave.isEnabled || handle == 0L) return false
+        val autosave = saveLocations?.autosave ?: return false
+        return NativeNestopia.saveState(handle, autosave.path)
     }
 
     private fun migrateRuntimeDirectory(): File {
@@ -170,12 +248,20 @@ class NestopiaEngine(
         val pixels = IntArray(WIDTH * HEIGHT)
         val samples = ShortArray(MAX_AUDIO_SAMPLES)
         val frameNanos = (NativeNestopia.frameDuration(handle) * 1_000_000_000.0).toLong()
+        val autosaveNanos =
+            if (configuration.autosave.isEnabled) {
+                configuration.autosave.resolvedIntervalSeconds * 1_000_000_000L
+            } else {
+                0L
+            }
         var nextFrame = System.nanoTime()
+        var nextAutosave = nextFrame + autosaveNanos
 
         while (!stopped) {
             if (paused) {
                 Thread.sleep(10)
                 nextFrame = System.nanoTime()
+                nextAutosave = nextFrame + autosaveNanos
                 continue
             }
             val audioCount =
@@ -193,6 +279,11 @@ class NestopiaEngine(
                 synchronized(nativeLock) {
                     audioTrack?.write(samples, 0, audioCount, AudioTrack.WRITE_BLOCKING)
                 }
+            }
+
+            if (autosaveNanos > 0L && System.nanoTime() >= nextAutosave) {
+                synchronized(nativeLock) { writeAutosave() }
+                nextAutosave = System.nanoTime() + autosaveNanos
             }
 
             nextFrame += frameNanos
@@ -238,6 +329,11 @@ class NestopiaEngine(
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
     }
+
+    private data class CachedROM(
+        val file: File,
+        val identity: String,
+    )
 
     private companion object {
         const val WIDTH = 256

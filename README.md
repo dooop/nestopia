@@ -125,6 +125,44 @@ Nestopia(
 )
 ```
 
+## Save data and autosave
+
+Both platforms keep the cartridge battery save and one automatic save state per game. Autosave is **enabled by default**: the engine restores the automatic save state right after the ROM loads, rewrites it every 30 seconds, and writes it once more on pause and on shutdown. A stale or incompatible autosave is ignored rather than failing the start.
+
+Files are named after a stable game identity — the sanitized display name plus the first 16 hex characters of the SHA-1 digest of the ROM contents — so saves survive a renamed file or a re-picked document:
+
+```text
+<save directory>/Super-Mario-Bros-1a2b3c4d5e6f7a8b.sav       cartridge battery / EEPROM
+<save directory>/Super-Mario-Bros-1a2b3c4d5e6f7a8b.auto.nst  automatic save state
+```
+
+The default save directory is `Application Support/Nestopia/Saves` on Apple platforms and `filesDir/Nestopia/Saves` on Android. Battery files written by earlier versions under their old names are moved to the new name on first start.
+
+```swift
+Nestopia(
+    configuration: NestopiaConfiguration(
+        romURL: romURL,
+        saveDirectory: myGamesDirectory,
+        autosave: NestopiaAutosaveConfiguration(isEnabled: true, interval: 60)
+    )
+)
+```
+
+```kotlin
+Nestopia(
+    configuration = NestopiaConfiguration(
+        romUri = documentUri,
+        saveDirectory = myGamesDirectory,
+        autosave = NestopiaAutosaveConfiguration(isEnabled = true, intervalSeconds = 60),
+    ),
+    modifier = Modifier.fillMaxSize(),
+)
+```
+
+Bridge writes go through a sibling temporary file, so an interrupted autosave never destroys the previous one; Apple binary-mode consumers pick that up with the next engine release pinned in `Package.swift`, while Android and Apple source mode compile the bridge directly.
+
+Set `isEnabled` to `false` to turn autosave off; the battery save keeps working, because the emulated cartridge writes it. Intervals below five seconds are raised to five. `NestopiaEngine` also exposes the automatic save state directly — `autosaveURL`/`autosaveFile`, `autosave()`, and `deleteAutosave()`/`clearAutosave()` — for hosts that want an explicit "save now" or "start over" action.
+
 ## ROMs and BIOS files
 
 No commercial ROMs or firmware are included. Supply legally obtained `.nes`/`.unf` content. Disk-system images require a user-supplied FDS BIOS; the initial wrapper exposes cartridge playback and Nestopia's normal missing-BIOS error but does not bundle firmware.
