@@ -7,7 +7,7 @@ The repository follows the same boundary model as `swift-scummvm`:
 ```text
 nestopia/                 upstream git submodule; read-only
 swift/
-  Sources/NestopiaCore   read-only symlink into the submodule
+  Sources/NestopiaCore   read-only symlink into the submodule (source mode only)
   Sources/NestopiaCoreBridge  portable C/C++ facade
   Sources/Nestopia       SwiftUI library for iOS, tvOS and macOS
 android/
@@ -47,7 +47,7 @@ NESTOPIA_BUILD_FROM_SOURCE=1 xcodebuild -scheme nestopia -destination 'generic/p
 
 The public `Nestopia` Swift target is always compiled from source. Its `CNestopiaCore` dependency can be consumed in two modes while keeping the same module graph:
 
-- **Binary mode (consumer default after the first engine release):** SwiftPM downloads `CNestopiaCore.xcframework.zip` from the release pinned in `Package.swift`. The Nestopia submodule is not required.
+- **Binary mode (consumer default after the first engine release):** SwiftPM downloads `CNestopiaCore.xcframework.zip` from the release pinned in `Package.swift`. The Nestopia submodule is not required: the cartridge database resource is vendored into `swift/Sources/Nestopia/Resources/NstDatabase.xml`, so nothing in the package graph reaches into `nestopia/`.
 - **Source mode:** set `NESTOPIA_BUILD_FROM_SOURCE=1` to compile `CNestopiaCore` from the `nestopia/` submodule. Use this for engine and bridge development.
 
 The manifest falls back to source mode while it still contains the placeholder binary checksum. Run `swift package reset` after switching modes in an existing checkout. Release automation builds iOS, iOS Simulator, tvOS, tvOS Simulator, and universal macOS slices, validates the resulting local XCFramework, and then updates the release URL and checksum through a pull request.
@@ -128,6 +128,16 @@ Nestopia(
 ## ROMs and BIOS files
 
 No commercial ROMs or firmware are included. Supply legally obtained `.nes`/`.unf` content. Disk-system images require a user-supplied FDS BIOS; the initial wrapper exposes cartridge playback and Nestopia's normal missing-BIOS error but does not bundle firmware.
+
+## Updating the Nestopia submodule
+
+`swift/Sources/Nestopia/Resources/NstDatabase.xml` is a vendored copy of the upstream file, not a symlink, so that binary-mode consumers never fetch the submodule. After bumping `nestopia/`, refresh it and commit the result:
+
+```sh
+scripts/sync-vendored-resources.sh
+```
+
+CI fails if the vendored copy and the submodule diverge. Android keeps reading the file straight from the submodule, because its build always compiles the engine from source.
 
 ## License
 

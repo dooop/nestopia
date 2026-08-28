@@ -31,6 +31,7 @@
 - Classify the change before choosing a layer: core behavior, Apple host, Android host, or sample-only.
 - When the C ABI changes, update the header and implementation together, then audit both Swift imports and Android JNI/Kotlin bindings.
 - When a public capability changes on one platform, explicitly check whether the other platform needs the same behavior or documentation.
+- After bumping the `nestopia/` submodule, run `scripts/sync-vendored-resources.sh`; the Apple package ships `NstDatabase.xml` as a vendored copy so binary-mode consumers never need the submodule.
 - Keep JNI limited to type conversion and buffer transfer. Keep Swift and Kotlin wrappers thin.
 - Add focused regression tests for state transitions, lifecycle cleanup, input masks, storage identity, and error paths when those areas change.
 - Treat hard-coded user-facing strings in library code as localization debt; keep diagnostic messages consistent across platforms.

@@ -41,6 +41,17 @@ jobs:
             echo "engine=false" >> "$GITHUB_OUTPUT"
           fi
 
+  verify-resources:
+    name: Verify vendored resources
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          submodules: recursive
+      - name: Compare the vendored cartridge database with the submodule
+        run: scripts/sync-vendored-resources.sh --check
+
   lint-swift:
     name: Lint (Swift)
     runs-on: macos-15
@@ -125,6 +136,8 @@ jobs:
             key: tvos
             destination: "generic/platform=tvOS"
     steps:
+      # Binary mode needs no submodule: NstDatabase.xml is vendored into the
+      # package and verified against upstream by the verify-resources job.
       - uses: actions/checkout@v7
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
