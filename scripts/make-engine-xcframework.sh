@@ -37,6 +37,43 @@ done
 rm -rf "$OUTPUT_DIR/CNestopiaCore.xcframework" "$OUTPUT_DIR/CNestopiaCore.xcframework.zip"
 xcodebuild -create-xcframework "${ARGS[@]}" -output "$OUTPUT_DIR/CNestopiaCore.xcframework"
 
+for entry in \
+    "ios-arm64|Info.plist|MinimumOSVersion|17.0|iPhoneOS" \
+    "ios-arm64_x86_64-simulator|Info.plist|MinimumOSVersion|17.0|iPhoneSimulator" \
+    "tvos-arm64|Info.plist|MinimumOSVersion|17.0|AppleTVOS" \
+    "tvos-arm64_x86_64-simulator|Info.plist|MinimumOSVersion|17.0|AppleTVSimulator" \
+    "macos-arm64_x86_64|Versions/Current/Resources/Info.plist|LSMinimumSystemVersion|15.0|MacOSX"; do
+    IFS='|' read -r slice plist_path minimum_os_key minimum_os supported_platform <<< "$entry"
+    framework="$OUTPUT_DIR/CNestopiaCore.xcframework/$slice/CNestopiaCore.framework"
+    test -f "$framework/Modules/module.modulemap" || {
+        echo "XCFramework slice has no namespaced module map: $framework" >&2
+        exit 1
+    }
+    plist="$framework/$plist_path"
+    test -f "$plist" || {
+        echo "XCFramework slice has no framework Info.plist: $framework" >&2
+        exit 1
+    }
+    test "$(plutil -extract "$minimum_os_key" raw -o - "$plist")" = "$minimum_os" || {
+        echo "XCFramework slice has the wrong minimum OS version: $framework" >&2
+        exit 1
+    }
+    test "$(plutil -extract CFBundleSupportedPlatforms.0 raw -o - "$plist")" = "$supported_platform" || {
+        echo "XCFramework slice has the wrong CFBundleSupportedPlatforms: $framework" >&2
+        exit 1
+    }
+done
+
+MACOS_FRAMEWORK="$OUTPUT_DIR/CNestopiaCore.xcframework/macos-arm64_x86_64/CNestopiaCore.framework"
+test -f "$MACOS_FRAMEWORK/Versions/Current/Resources/Info.plist" || {
+    echo "The macOS framework must use a versioned bundle layout." >&2
+    exit 1
+}
+test ! -e "$MACOS_FRAMEWORK/Info.plist" || {
+    echo "The macOS framework must not use a shallow Info.plist." >&2
+    exit 1
+}
+
 {
     echo "nestopia prebuilt CNestopiaCore"
     echo

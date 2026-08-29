@@ -23,22 +23,37 @@ case "$SLICE_ID" in
     ios-arm64)
         DESTINATION="generic/platform=iOS"
         ARCHS="arm64"
+        MINIMUM_OS_KEY="MinimumOSVersion"
+        MINIMUM_OS_VERSION="17.0"
+        SUPPORTED_PLATFORM="iPhoneOS"
         ;;
     ios-arm64_x86_64-simulator)
         DESTINATION="generic/platform=iOS Simulator"
         ARCHS="arm64 x86_64"
+        MINIMUM_OS_KEY="MinimumOSVersion"
+        MINIMUM_OS_VERSION="17.0"
+        SUPPORTED_PLATFORM="iPhoneSimulator"
         ;;
     tvos-arm64)
         DESTINATION="generic/platform=tvOS"
         ARCHS="arm64"
+        MINIMUM_OS_KEY="MinimumOSVersion"
+        MINIMUM_OS_VERSION="17.0"
+        SUPPORTED_PLATFORM="AppleTVOS"
         ;;
     tvos-arm64_x86_64-simulator)
         DESTINATION="generic/platform=tvOS Simulator"
         ARCHS="arm64 x86_64"
+        MINIMUM_OS_KEY="MinimumOSVersion"
+        MINIMUM_OS_VERSION="17.0"
+        SUPPORTED_PLATFORM="AppleTVSimulator"
         ;;
     macos-arm64_x86_64)
         DESTINATION="generic/platform=macOS"
         ARCHS="arm64 x86_64"
+        MINIMUM_OS_KEY="LSMinimumSystemVersion"
+        MINIMUM_OS_VERSION="15.0"
+        SUPPORTED_PLATFORM="MacOSX"
         ;;
     *)
         echo "Unknown slice: $SLICE_ID" >&2
@@ -111,7 +126,7 @@ framework module CNestopiaCore {
 }
 EOF
 
-cat > "$FRAMEWORK_PLIST" <<'EOF'
+cat > "$FRAMEWORK_PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -130,8 +145,14 @@ cat > "$FRAMEWORK_PLIST" <<'EOF'
     <string>FMWK</string>
     <key>CFBundleShortVersionString</key>
     <string>1.0</string>
+    <key>CFBundleSupportedPlatforms</key>
+    <array>
+        <string>$SUPPORTED_PLATFORM</string>
+    </array>
     <key>CFBundleVersion</key>
     <string>1</string>
+    <key>$MINIMUM_OS_KEY</key>
+    <string>$MINIMUM_OS_VERSION</string>
 </dict>
 </plist>
 EOF
