@@ -9,88 +9,94 @@ import SwiftUI
     import AppKit
 #endif
 
-/// Named coordinate space shared by every control inside one
-/// `ControllerTouchSurface`, so button frames and drag locations can be
-/// compared directly regardless of how deep in the view hierarchy a button sits.
-let controllerTouchSpace = "NestopiaControllerTouchSpace"
+// tvOS has no touch screen and no `DragGesture`; on-screen controls are never
+// shown there (`shouldShowOnScreenControls` excludes television), so this
+// entire touch-handling surface is compiled out and the tvOS branches in
+// NestopiaControls.swift drive buttons directly from focus/click instead.
+#if !os(tvOS)
+    /// Named coordinate space shared by every control inside one
+    /// `ControllerTouchSurface`, so button frames and drag locations can be
+    /// compared directly regardless of how deep in the view hierarchy a button sits.
+    let controllerTouchSpace = "NestopiaControllerTouchSpace"
 
-struct ControllerButtonFrameKey: PreferenceKey {
-    static let defaultValue: [NestopiaControllerButton: CGRect] = [:]
-    static func reduce(
-        value: inout [NestopiaControllerButton: CGRect],
-        nextValue: () -> [NestopiaControllerButton: CGRect]
-    ) {
-        value.merge(nextValue()) { _, new in new }
-    }
-}
-
-extension View {
-    /// Publishes this view's frame, in `controllerTouchSpace`, keyed by `button`
-    /// so an enclosing `ControllerTouchSurface` can hit-test drags against it.
-    func reportingControllerFrame(of button: NestopiaControllerButton) -> some View {
-        background(
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: ControllerButtonFrameKey.self,
-                    value: [button: proxy.frame(in: .named(controllerTouchSpace))]
-                )
-            }
-        )
-    }
-}
-
-/// Hosts one contiguous touch surface for a group of related controller
-/// buttons (the four directions, or the two action buttons, or the two
-/// utility buttons) so a single finger sliding across the group presses and
-/// releases buttons continuously as it crosses their frames, instead of only
-/// affecting whichever button the touch happened to start on.
-struct ControllerTouchSurface<Content: View>: View {
-    let engine: NestopiaEngine
-    let hapticsEnabled: Bool
-    let resolveActive:
-        (CGPoint, [NestopiaControllerButton: CGRect]) -> Set<NestopiaControllerButton>
-    let content: (Set<NestopiaControllerButton>) -> Content
-
-    init(
-        engine: NestopiaEngine,
-        hapticsEnabled: Bool,
-        resolveActive: @escaping (CGPoint, [NestopiaControllerButton: CGRect]) -> Set<
-            NestopiaControllerButton
-        >,
-        @ViewBuilder content: @escaping (Set<NestopiaControllerButton>) -> Content
-    ) {
-        self.engine = engine
-        self.hapticsEnabled = hapticsEnabled
-        self.resolveActive = resolveActive
-        self.content = content
+    struct ControllerButtonFrameKey: PreferenceKey {
+        static let defaultValue: [NestopiaControllerButton: CGRect] = [:]
+        static func reduce(
+            value: inout [NestopiaControllerButton: CGRect],
+            nextValue: () -> [NestopiaControllerButton: CGRect]
+        ) {
+            value.merge(nextValue()) { _, new in new }
+        }
     }
 
-    @State private var frames: [NestopiaControllerButton: CGRect] = [:]
-    @State private var active: Set<NestopiaControllerButton> = []
-
-    var body: some View {
-        content(active)
-            .coordinateSpace(name: controllerTouchSpace)
-            .onPreferenceChange(ControllerButtonFrameKey.self) { frames = $0 }
-            .contentShape(Rectangle())
-            .gesture(
-                DragGesture(minimumDistance: 0, coordinateSpace: .named(controllerTouchSpace))
-                    .onChanged { update(to: resolveActive($0.location, frames)) }
-                    .onEnded { _ in update(to: []) }
+    extension View {
+        /// Publishes this view's frame, in `controllerTouchSpace`, keyed by `button`
+        /// so an enclosing `ControllerTouchSurface` can hit-test drags against it.
+        func reportingControllerFrame(of button: NestopiaControllerButton) -> some View {
+            background(
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: ControllerButtonFrameKey.self,
+                        value: [button: proxy.frame(in: .named(controllerTouchSpace))]
+                    )
+                }
             )
-            .onDisappear { update(to: []) }
+        }
     }
 
-    private func update(to newActive: Set<NestopiaControllerButton>) {
-        guard newActive != active else { return }
-        let pressed = newActive.subtracting(active)
-        let released = active.subtracting(newActive)
-        active = newActive
-        for button in released { engine.setButton(button, pressed: false) }
-        for button in pressed { engine.setButton(button, pressed: true) }
-        if hapticsEnabled && !pressed.isEmpty { performControllerHaptic() }
+    /// Hosts one contiguous touch surface for a group of related controller
+    /// buttons (the four directions, or the two action buttons, or the two
+    /// utility buttons) so a single finger sliding across the group presses and
+    /// releases buttons continuously as it crosses their frames, instead of only
+    /// affecting whichever button the touch happened to start on.
+    struct ControllerTouchSurface<Content: View>: View {
+        let engine: NestopiaEngine
+        let hapticsEnabled: Bool
+        let resolveActive:
+            (CGPoint, [NestopiaControllerButton: CGRect]) -> Set<NestopiaControllerButton>
+        let content: (Set<NestopiaControllerButton>) -> Content
+
+        init(
+            engine: NestopiaEngine,
+            hapticsEnabled: Bool,
+            resolveActive: @escaping (CGPoint, [NestopiaControllerButton: CGRect]) -> Set<
+                NestopiaControllerButton
+            >,
+            @ViewBuilder content: @escaping (Set<NestopiaControllerButton>) -> Content
+        ) {
+            self.engine = engine
+            self.hapticsEnabled = hapticsEnabled
+            self.resolveActive = resolveActive
+            self.content = content
+        }
+
+        @State private var frames: [NestopiaControllerButton: CGRect] = [:]
+        @State private var active: Set<NestopiaControllerButton> = []
+
+        var body: some View {
+            content(active)
+                .coordinateSpace(name: controllerTouchSpace)
+                .onPreferenceChange(ControllerButtonFrameKey.self) { frames = $0 }
+                .contentShape(Rectangle())
+                .gesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .named(controllerTouchSpace))
+                        .onChanged { update(to: resolveActive($0.location, frames)) }
+                        .onEnded { _ in update(to: []) }
+                )
+                .onDisappear { update(to: []) }
+        }
+
+        private func update(to newActive: Set<NestopiaControllerButton>) {
+            guard newActive != active else { return }
+            let pressed = newActive.subtracting(active)
+            let released = active.subtracting(newActive)
+            active = newActive
+            for button in released { engine.setButton(button, pressed: false) }
+            for button in pressed { engine.setButton(button, pressed: true) }
+            if hapticsEnabled && !pressed.isEmpty { performControllerHaptic() }
+        }
     }
-}
+#endif
 
 /// Resolves which direction(s) of a square d-pad surface a point falls in.
 /// The eight compass sectors around the center map to a cardinal press or,
