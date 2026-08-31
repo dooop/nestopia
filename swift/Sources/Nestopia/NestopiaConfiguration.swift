@@ -38,7 +38,7 @@ public enum NestopiaState: Equatable, Sendable {
     case failed(String)
 }
 
-public enum NestopiaControllerButton: Int, CaseIterable, Sendable {
+public enum NestopiaControllerButton: Int, CaseIterable, Sendable, Hashable {
     case a = 0x01
     case b = 0x02
     case select = 0x04

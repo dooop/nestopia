@@ -20,20 +20,16 @@ public struct NestopiaView: View {
 
     public var body: some View {
         ZStack {
-            Color.black
-            if let frame = engine.frame {
-                Image(decorative: frame, scale: 1)
-                    .resizable()
-                    .interpolation(.none)
-                    .aspectRatio(256.0 / 240.0, contentMode: .fit)
-            } else {
-                status
-            }
+            gameLayer
+                .ignoresSafeArea()
             if shouldShowOnScreenControls(
                 requested: showsControls,
                 isTelevision: isTelevision,
                 hasExternalController: engine.hasConnectedController
             ) {
+                // Intentionally does not ignore the safe area: the controls must
+                // stay clear of the home indicator, notch, and rounded corners
+                // rather than bleeding under them like the fullscreen game frame.
                 NestopiaControls(engine: engine, configuration: controllerConfiguration)
             }
             if shouldShowControllerConnectionPrompt(
@@ -43,7 +39,20 @@ public struct NestopiaView: View {
                 controllerConnectionPrompt
             }
         }
-        .ignoresSafeArea()
+    }
+
+    @ViewBuilder private var gameLayer: some View {
+        ZStack {
+            Color.black
+            if let frame = engine.frame {
+                Image(decorative: frame, scale: 1)
+                    .resizable()
+                    .interpolation(.none)
+                    .aspectRatio(256.0 / 240.0, contentMode: .fit)
+            } else {
+                status
+            }
+        }
     }
 
     private var isTelevision: Bool {

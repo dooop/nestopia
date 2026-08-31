@@ -3,12 +3,6 @@
 
 import SwiftUI
 
-#if os(iOS)
-    import UIKit
-#elseif os(macOS)
-    import AppKit
-#endif
-
 public struct NestopiaControls: View {
     private let engine: NestopiaEngine
     private let configuration: NestopiaControllerConfiguration
@@ -106,7 +100,14 @@ public struct NestopiaControls: View {
                         .overlay(shape.fill(palette.body))
                 #endif
             } else {
-                shape.fill(palette.body)
+                shape.fill(bodyPanelGradient(color: palette.body))
+                shape.fill(
+                    LinearGradient(
+                        colors: [.white.opacity(0.08), .clear, .black.opacity(0.10)],
+                        startPoint: .top, endPoint: .bottom
+                    )
+                )
+                shape.stroke(.black.opacity(0.22), lineWidth: 1)
             }
             shape.stroke(.white.opacity(configuration.theme == .system ? 0.28 : 0.12), lineWidth: 1)
         }
@@ -121,143 +122,278 @@ public struct NestopiaControls: View {
         }
     }
 
-    private func dPad(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
-        Grid(horizontalSpacing: 0, verticalSpacing: 0) {
-            GridRow {
-                Color.clear.frame(width: metrics.direction, height: metrics.direction)
-                control(
-                    "▲", .up, size: CGSize(width: metrics.direction, height: metrics.direction),
-                    shape: .rounded,
-                    color: palette.dPad, palette: palette, opacity: opacity)
-                Color.clear.frame(width: metrics.direction, height: metrics.direction)
-            }
-            GridRow {
-                control(
-                    "◀", .left, size: CGSize(width: metrics.direction, height: metrics.direction),
-                    shape: .rounded,
-                    color: palette.dPad, palette: palette, opacity: opacity)
-                ZStack {
-                    Rectangle().fill(palette.dPad.opacity(opacity))
-                    Circle()
-                        .fill(.black.opacity(0.16 * opacity))
-                        .overlay(Circle().stroke(.white.opacity(0.08 * opacity), lineWidth: 1))
-                        .frame(width: metrics.direction * 0.54, height: metrics.direction * 0.54)
+    // MARK: - Directional pad
+
+    #if os(tvOS)
+        private func dPad(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
+            let cell = metrics.direction
+            let bounds = CGSize(width: cell * 3, height: cell * 3)
+            return ZStack {
+                crossPlate(size: bounds, palette: palette, opacity: opacity)
+                Grid(horizontalSpacing: 0, verticalSpacing: 0) {
+                    GridRow {
+                        Color.clear.frame(width: cell, height: cell)
+                        tvDirectionButton(.up, "▲", cell: cell, palette: palette, opacity: opacity)
+                        Color.clear.frame(width: cell, height: cell)
+                    }
+                    GridRow {
+                        tvDirectionButton(.left, "◀", cell: cell, palette: palette, opacity: opacity)
+                        centerBoss(size: cell, opacity: opacity)
+                        tvDirectionButton(.right, "▶", cell: cell, palette: palette, opacity: opacity)
+                    }
+                    GridRow {
+                        Color.clear.frame(width: cell, height: cell)
+                        tvDirectionButton(.down, "▼", cell: cell, palette: palette, opacity: opacity)
+                        Color.clear.frame(width: cell, height: cell)
+                    }
                 }
-                .frame(width: metrics.direction, height: metrics.direction)
-                control(
-                    "▶", .right, size: CGSize(width: metrics.direction, height: metrics.direction),
-                    shape: .rounded,
-                    color: palette.dPad, palette: palette, opacity: opacity)
             }
-            GridRow {
-                Color.clear.frame(width: metrics.direction, height: metrics.direction)
-                control(
-                    "▼", .down, size: CGSize(width: metrics.direction, height: metrics.direction),
-                    shape: .rounded,
-                    color: palette.dPad, palette: palette, opacity: opacity)
-                Color.clear.frame(width: metrics.direction, height: metrics.direction)
-            }
+            .frame(width: bounds.width, height: bounds.height)
         }
-    }
 
-    private func utilityButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
-        HStack(spacing: metrics.utilitySpacing) {
-            control(
-                "SELECT", .select, size: metrics.utility, shape: .capsule, color: palette.utility,
-                palette: palette,
-                opacity: opacity)
-            control(
-                "START", .start, size: metrics.utility, shape: .capsule, color: palette.utility,
-                palette: palette,
-                opacity: opacity)
-        }
-    }
-
-    private func actionButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
-        HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
-            control(
-                "B", .b, size: metrics.action, shape: .circle, color: palette.action,
-                palette: palette, opacity: opacity
-            )
-            .padding(.bottom, metrics.action.height * 0.22)
-            control(
-                "A", .a, size: metrics.action, shape: .circle, color: palette.action,
-                palette: palette, opacity: opacity
-            )
-        }
-    }
-
-    @ViewBuilder
-    private func control(
-        _ label: String, _ button: NestopiaControllerButton, size: CGSize, shape: ControlShape,
-        color: Color,
-        palette: Palette, opacity: Double
-    ) -> some View {
-        #if os(tvOS)
+        private func tvDirectionButton(
+            _ button: NestopiaControllerButton, _ glyph: String, cell: CGFloat, palette: Palette,
+            opacity: Double
+        ) -> some View {
             Button {
                 engine.setButton(button, pressed: true)
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
                     engine.setButton(button, pressed: false)
                 }
             } label: {
-                controlLabel(
-                    label, size: size, shape: shape, color: color, palette: palette,
-                    opacity: opacity)
+                Text(glyph)
+                    .font(.system(size: 18, weight: .black, design: .rounded))
+                    .foregroundStyle(palette.labels)
+                    .frame(width: cell, height: cell)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-        #else
-            PressableControl(
+        }
+    #else
+        private func dPad(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
+            let cell = metrics.direction
+            let bounds = CGSize(width: cell * 3, height: cell * 3)
+            return ControllerTouchSurface(
+                engine: engine,
                 hapticsEnabled: configuration.hapticsEnabled,
-                onPressedChange: { engine.setButton(button, pressed: $0) },
-                content: {
-                    controlLabel(
-                        label, size: size, shape: shape, color: color, palette: palette,
-                        opacity: opacity)
+                resolveActive: { point, _ in
+                    dPadHitTest(at: point, in: CGRect(origin: .zero, size: bounds))
                 }
-            )
-        #endif
+            ) { active in
+                ZStack {
+                    crossPlate(size: bounds, palette: palette, opacity: opacity)
+                    Grid(horizontalSpacing: 0, verticalSpacing: 0) {
+                        GridRow {
+                            Color.clear.frame(width: cell, height: cell)
+                            armOverlay(.up, active: active, cell: cell, opacity: opacity)
+                            Color.clear.frame(width: cell, height: cell)
+                        }
+                        GridRow {
+                            armOverlay(.left, active: active, cell: cell, opacity: opacity)
+                            centerBoss(size: cell, opacity: opacity)
+                            armOverlay(.right, active: active, cell: cell, opacity: opacity)
+                        }
+                        GridRow {
+                            Color.clear.frame(width: cell, height: cell)
+                            armOverlay(.down, active: active, cell: cell, opacity: opacity)
+                            Color.clear.frame(width: cell, height: cell)
+                        }
+                    }
+                }
+                .frame(width: bounds.width, height: bounds.height)
+            }
+        }
+    #endif
+
+    private func crossPlate(size: CGSize, palette: Palette, opacity: Double) -> some View {
+        let shape = DPadCrossShape(cornerRadius: size.width * 0.09)
+        return ZStack {
+            shape.fill(dPadGradient(color: palette.dPad, opacity: opacity))
+            shape.stroke(.white.opacity(0.08 * opacity), lineWidth: 1.5)
+            shape.stroke(.black.opacity(0.35 * opacity), lineWidth: 1)
+        }
+        .frame(width: size.width, height: size.height)
+        .shadow(color: .black.opacity(0.2 * opacity), radius: 3, y: 2)
     }
 
-    private func controlLabel(
-        _ label: String, size: CGSize, shape: ControlShape, color: Color, palette: Palette,
+    private func armOverlay(
+        _ button: NestopiaControllerButton, active: Set<NestopiaControllerButton>, cell: CGFloat,
         opacity: Double
     ) -> some View {
-        Text(label)
-            .font(.system(size: label.count == 1 ? 20 : 9, weight: .black, design: .rounded))
-            .foregroundStyle(palette.labels)
+        Rectangle()
+            .fill(.black.opacity(active.contains(button) ? 0.24 * opacity : 0))
+            .frame(width: cell, height: cell)
+            .animation(.easeOut(duration: 0.06), value: active.contains(button))
+    }
+
+    private func centerBoss(size: CGFloat, opacity: Double) -> some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [.white.opacity(0.18 * opacity), .black.opacity(0.30 * opacity)],
+                    center: .center, startRadius: 0, endRadius: size * 0.32
+                )
+            )
+            .overlay(Circle().stroke(.black.opacity(0.3 * opacity), lineWidth: 1))
+            .frame(width: size * 0.6, height: size * 0.6)
+    }
+
+    // MARK: - Utility buttons (SELECT / START)
+
+    #if os(tvOS)
+        private func utilityButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View
+        {
+            HStack(spacing: metrics.utilitySpacing) {
+                tvUtilityButton(.select, "SELECT", metrics: metrics, palette: palette, opacity: opacity)
+                tvUtilityButton(.start, "START", metrics: metrics, palette: palette, opacity: opacity)
+            }
+        }
+
+        private func tvUtilityButton(
+            _ button: NestopiaControllerButton, _ label: String, metrics: Metrics, palette: Palette,
+            opacity: Double
+        ) -> some View {
+            Button {
+                engine.setButton(button, pressed: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    engine.setButton(button, pressed: false)
+                }
+            } label: {
+                utilityCapVisual(
+                    label: label, size: metrics.utility, palette: palette, opacity: opacity,
+                    isActive: false)
+            }
+            .buttonStyle(.plain)
+        }
+    #else
+        private func utilityButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View
+        {
+            ControllerTouchSurface(
+                engine: engine,
+                hapticsEnabled: configuration.hapticsEnabled,
+                resolveActive: { point, frames in
+                    nearestButtonHitTest(at: point, among: frames, tolerance: metrics.utility.width * 0.7)
+                }
+            ) { active in
+                HStack(spacing: metrics.utilitySpacing) {
+                    utilityCap(
+                        .select, label: "SELECT", metrics: metrics, palette: palette, opacity: opacity,
+                        active: active)
+                    utilityCap(
+                        .start, label: "START", metrics: metrics, palette: palette, opacity: opacity,
+                        active: active)
+                }
+            }
+        }
+
+        private func utilityCap(
+            _ button: NestopiaControllerButton, label: String, metrics: Metrics, palette: Palette,
+            opacity: Double, active: Set<NestopiaControllerButton>
+        ) -> some View {
+            utilityCapVisual(
+                label: label, size: metrics.utility, palette: palette, opacity: opacity,
+                isActive: active.contains(button)
+            )
+            .reportingControllerFrame(of: button)
+        }
+    #endif
+
+    private func utilityCapVisual(
+        label: String, size: CGSize, palette: Palette, opacity: Double, isActive: Bool
+    ) -> some View {
+        Capsule()
+            .fill(utilityCapsuleGradient(color: palette.utility, opacity: opacity))
+            .overlay(Capsule().strokeBorder(.white.opacity(0.22 * opacity), lineWidth: 1))
+            .overlay(
+                Text(label)
+                    .font(.system(size: 9, weight: .black, design: .rounded))
+                    .foregroundStyle(palette.labels)
+            )
             .frame(width: size.width, height: size.height)
-            .background { controlSurface(shape: shape, color: color, opacity: opacity) }
-            .contentShape(shape.swiftUIShape)
+            .scaleEffect(isActive ? 0.94 : 1)
+            .brightness(isActive ? -0.12 : 0)
+            .contentShape(Capsule())
+            .animation(.easeOut(duration: 0.07), value: isActive)
             .accessibilityLabel(label)
     }
 
-    @ViewBuilder
-    private func controlSurface(shape: ControlShape, color: Color, opacity: Double) -> some View {
-        let surface = shape.swiftUIShape
-        if configuration.theme == .system {
-            #if compiler(>=6.2)
-                if #available(iOS 26.0, macOS 26.0, tvOS 26.0, *) {
-                    surface.fill(.clear)
-                        .glassEffect(
-                            .regular.tint(color.opacity(opacity)).interactive(), in: surface)
-                } else {
-                    materialSurface(surface, color: color, opacity: opacity)
-                }
-            #else
-                materialSurface(surface, color: color, opacity: opacity)
-            #endif
-        } else {
-            surface.fill(color.opacity(opacity))
-                .overlay(surface.stroke(.white.opacity(0.1 * opacity), lineWidth: 1))
-                .shadow(color: .black.opacity(0.25 * opacity), radius: 3, y: 2)
-        }
-    }
+    // MARK: - Action buttons (A / B)
 
-    private func materialSurface(_ surface: AnyShape, color: Color, opacity: Double) -> some View {
-        surface.fill(.ultraThinMaterial)
-            .overlay(surface.fill(color.opacity(opacity)))
-            .overlay(surface.stroke(.white.opacity(0.32 * opacity), lineWidth: 1))
-            .shadow(color: .black.opacity(0.2 * opacity), radius: 5, y: 3)
+    #if os(tvOS)
+        private func actionButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
+            HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
+                tvActionButton(.b, "B", metrics: metrics, palette: palette, opacity: opacity)
+                    .padding(.bottom, metrics.action.height * 0.22)
+                tvActionButton(.a, "A", metrics: metrics, palette: palette, opacity: opacity)
+            }
+        }
+
+        private func tvActionButton(
+            _ button: NestopiaControllerButton, _ label: String, metrics: Metrics, palette: Palette,
+            opacity: Double
+        ) -> some View {
+            Button {
+                engine.setButton(button, pressed: true)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                    engine.setButton(button, pressed: false)
+                }
+            } label: {
+                actionCapVisual(
+                    label: label, diameter: metrics.action.width, palette: palette, opacity: opacity,
+                    isActive: false)
+            }
+            .buttonStyle(.plain)
+        }
+    #else
+        private func actionButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
+            ControllerTouchSurface(
+                engine: engine,
+                hapticsEnabled: configuration.hapticsEnabled,
+                resolveActive: { point, frames in
+                    nearestButtonHitTest(at: point, among: frames, tolerance: metrics.action.width * 0.7)
+                }
+            ) { active in
+                HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
+                    actionCap(.b, label: "B", metrics: metrics, palette: palette, opacity: opacity, active: active)
+                        .padding(.bottom, metrics.action.height * 0.22)
+                    actionCap(.a, label: "A", metrics: metrics, palette: palette, opacity: opacity, active: active)
+                }
+            }
+        }
+
+        private func actionCap(
+            _ button: NestopiaControllerButton, label: String, metrics: Metrics, palette: Palette,
+            opacity: Double, active: Set<NestopiaControllerButton>
+        ) -> some View {
+            actionCapVisual(
+                label: label, diameter: metrics.action.width, palette: palette, opacity: opacity,
+                isActive: active.contains(button)
+            )
+            .reportingControllerFrame(of: button)
+        }
+    #endif
+
+    private func actionCapVisual(
+        label: String, diameter: CGFloat, palette: Palette, opacity: Double, isActive: Bool
+    ) -> some View {
+        VStack(spacing: 4) {
+            Circle()
+                .fill(actionCapGradient(color: palette.action, opacity: opacity, diameter: diameter))
+                .overlay(Circle().strokeBorder(.white.opacity(0.32 * opacity), lineWidth: 1.2))
+                .overlay(Circle().stroke(.black.opacity(0.28 * opacity), lineWidth: 1))
+                .frame(width: diameter, height: diameter)
+                .scaleEffect(isActive ? 0.93 : 1)
+                .brightness(isActive ? -0.12 : 0)
+                .shadow(color: .black.opacity(0.28 * opacity), radius: 3, y: 2)
+                .contentShape(Circle())
+            Text(label)
+                .font(.system(size: 10, weight: .black, design: .rounded))
+                .foregroundStyle(palette.bodyLabel)
+                .opacity(opacity)
+        }
+        .animation(.easeOut(duration: 0.07), value: isActive)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
     }
 }
 
@@ -326,60 +462,5 @@ private struct Palette {
         labels = overrides.labels ?? defaults.4
         bodyLabel = overrides.bodyLabel ?? defaults.5
         panel = defaults.6
-    }
-}
-
-#if !os(tvOS)
-    private struct PressableControl<Content: View>: View {
-        let hapticsEnabled: Bool
-        let onPressedChange: (Bool) -> Void
-        @ViewBuilder let content: () -> Content
-        @State private var isPressed = false
-
-        var body: some View {
-            content()
-                .scaleEffect(isPressed ? 0.92 : 1)
-                .brightness(isPressed ? -0.12 : 0)
-                .animation(.easeOut(duration: 0.08), value: isPressed)
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onChanged { _ in
-                            guard !isPressed else { return }
-                            isPressed = true
-                            onPressedChange(true)
-                            if hapticsEnabled { performControllerHaptic() }
-                        }
-                        .onEnded { _ in release() }
-                )
-                .onDisappear { release() }
-        }
-
-        private func release() {
-            guard isPressed else { return }
-            isPressed = false
-            onPressedChange(false)
-        }
-    }
-#endif
-
-private func performControllerHaptic() {
-    #if os(iOS)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.75)
-    #elseif os(macOS)
-        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
-    #endif
-}
-
-private enum ControlShape {
-    case circle
-    case capsule
-    case rounded
-
-    var swiftUIShape: AnyShape {
-        switch self {
-        case .circle: AnyShape(Circle())
-        case .capsule: AnyShape(Capsule())
-        case .rounded: AnyShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-        }
     }
 }
