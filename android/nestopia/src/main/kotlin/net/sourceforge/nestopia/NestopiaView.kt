@@ -10,8 +10,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -83,6 +86,10 @@ fun NestopiaView(
         }
 
         if (shouldShowOnScreenControls(showsControls, isTelevision, hasExternalController)) {
+            // Intentionally applies safeDrawing insets padding here rather than
+            // on the root Box: the game frame above must still bleed edge-to-edge
+            // (enableEdgeToEdge() on the host Activity), but the controls need
+            // to stay clear of the gesture/navigation bar and display cutout.
             NestopiaControls(
                 engine = engine,
                 configuration = controllerConfiguration,
@@ -90,6 +97,7 @@ fun NestopiaView(
                     Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxSize()
+                        .windowInsetsPadding(WindowInsets.safeDrawing)
                         .wrapContentSize(Alignment.BottomCenter)
                         .padding(20.dp),
             )
@@ -99,6 +107,7 @@ fun NestopiaView(
             Column(
                 modifier =
                     Modifier
+                        .windowInsetsPadding(WindowInsets.safeDrawing)
                         .background(Color.Black.copy(alpha = 0.72f), MaterialTheme.shapes.large)
                         .padding(32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,

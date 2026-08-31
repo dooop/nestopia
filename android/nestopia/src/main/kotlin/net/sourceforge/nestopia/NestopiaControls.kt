@@ -7,7 +7,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -15,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -24,18 +24,15 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -98,7 +95,9 @@ private fun GamepadControls(
                     .fillMaxWidth()
                     .widthIn(max = 680.dp)
                     .shadow(14.dp, bodyShape)
-                    .background(palette.body, bodyShape)
+                    .background(bodyPanelBrush(palette.body), bodyShape)
+                    .background(bodySheenBrush, bodyShape)
+                    .border(1.dp, Color.Black.copy(alpha = 0.22f), bodyShape)
                     .border(1.dp, Color.White.copy(alpha = 0.14f), bodyShape)
                     .padding(metrics.bodyPadding),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -170,6 +169,8 @@ private fun OverlayControls(
     }
 }
 
+// MARK: Directional pad
+
 @Composable
 private fun DPad(
     engine: NestopiaEngine,
@@ -179,67 +180,89 @@ private fun DPad(
     opacity: Float,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        ControllerButton(
-            "▲",
-            NestopiaButton.Up,
-            engine,
-            metrics.direction,
-            metrics.direction,
-            RoundedCornerShape(7.dp),
-            palette.directionalPad,
-            palette.labels,
-            configuration,
-            opacity,
-        )
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            ControllerButton(
-                "◀",
-                NestopiaButton.Left,
-                engine,
-                metrics.direction,
-                metrics.direction,
-                RoundedCornerShape(7.dp),
-                palette.directionalPad,
-                palette.labels,
-                configuration,
-                opacity,
-            )
-            Box(
-                Modifier
-                    .size(metrics.direction)
-                    .background(palette.directionalPad.copy(alpha = palette.directionalPad.alpha * opacity))
-                    .padding(metrics.direction * 0.23f)
-                    .background(Color.Black.copy(alpha = 0.16f * opacity), CircleShape)
-                    .border(1.dp, Color.White.copy(alpha = 0.08f * opacity), CircleShape),
-            )
-            ControllerButton(
-                "▶",
-                NestopiaButton.Right,
-                engine,
-                metrics.direction,
-                metrics.direction,
-                RoundedCornerShape(7.dp),
-                palette.directionalPad,
-                palette.labels,
-                configuration,
-                opacity,
-            )
+    val cell = metrics.direction
+    val plateSize = cell * 3
+    val density = LocalDensity.current
+    val boundsPx =
+        remember(plateSize, density) {
+            with(density) { Rect(0f, 0f, plateSize.toPx(), plateSize.toPx()) }
         }
-        ControllerButton(
-            "▼",
-            NestopiaButton.Down,
-            engine,
-            metrics.direction,
-            metrics.direction,
-            RoundedCornerShape(7.dp),
-            palette.directionalPad,
-            palette.labels,
-            configuration,
-            opacity,
-        )
+    ControllerTouchSurface(
+        engine = engine,
+        hapticsEnabled = configuration.hapticsEnabled,
+        modifier = modifier.size(plateSize),
+        resolveActive = { point, _ -> dPadHitTest(point, boundsPx) },
+    ) {
+        Box(Modifier.size(plateSize)) {
+            CrossPlate(size = plateSize, palette = palette, opacity = opacity)
+            ArmOverlay(active, NestopiaButton.Up, cell, opacity, Modifier.offset(x = cell, y = 0.dp))
+            ArmOverlay(active, NestopiaButton.Left, cell, opacity, Modifier.offset(x = 0.dp, y = cell))
+            ArmOverlay(active, NestopiaButton.Right, cell, opacity, Modifier.offset(x = cell * 2, y = cell))
+            ArmOverlay(active, NestopiaButton.Down, cell, opacity, Modifier.offset(x = cell, y = cell * 2))
+            CenterBoss(size = cell, opacity = opacity, modifier = Modifier.offset(x = cell, y = cell))
+        }
     }
 }
+
+@Composable
+private fun CrossPlate(
+    size: Dp,
+    palette: ControllerPalette,
+    opacity: Float,
+) {
+    val shape = remember(size) { DPadCrossShape(cornerRadius = size * 0.09f) }
+    Box(
+        modifier =
+            Modifier
+                .size(size)
+                .shadow(3.dp, shape)
+                .background(dPadBrush(palette.directionalPad, opacity), shape)
+                .border(1.5.dp, Color.White.copy(alpha = 0.08f * opacity), shape)
+                .border(1.dp, Color.Black.copy(alpha = 0.35f * opacity), shape),
+    )
+}
+
+@Composable
+private fun ArmOverlay(
+    active: Set<NestopiaButton>,
+    button: NestopiaButton,
+    cell: Dp,
+    opacity: Float,
+    modifier: Modifier = Modifier,
+) {
+    val isActive = active.contains(button)
+    val darken by animateOverlayAlpha(isActive, target = 0.24f * opacity)
+    Box(
+        modifier =
+            modifier
+                .size(cell)
+                .background(Color.Black.copy(alpha = darken)),
+    )
+}
+
+@Composable
+private fun CenterBoss(
+    size: Dp,
+    opacity: Float,
+    modifier: Modifier = Modifier,
+) {
+    val bossSize = size * 0.6f
+    val centerOffset = (size - bossSize) / 2
+    Box(
+        modifier =
+            modifier
+                .offset(x = centerOffset, y = centerOffset)
+                .size(bossSize)
+                .background(
+                    Brush.radialGradient(
+                        listOf(Color.White.copy(alpha = 0.18f * opacity), Color.Black.copy(alpha = 0.30f * opacity)),
+                    ),
+                    CircleShape,
+                ).border(1.dp, Color.Black.copy(alpha = 0.3f * opacity), CircleShape),
+    )
+}
+
+// MARK: Utility buttons (SELECT / START)
 
 @Composable
 private fun UtilityButtons(
@@ -250,33 +273,49 @@ private fun UtilityButtons(
     opacity: Float,
     modifier: Modifier = Modifier,
 ) {
-    Row(modifier = modifier, horizontalArrangement = Arrangement.spacedBy(metrics.utilitySpacing)) {
-        ControllerButton(
-            "SELECT",
-            NestopiaButton.Select,
-            engine,
-            metrics.utilityWidth,
-            metrics.utilityHeight,
-            RoundedCornerShape(50),
-            palette.utilityButtons,
-            palette.labels,
-            configuration,
-            opacity,
-        )
-        ControllerButton(
-            "START",
-            NestopiaButton.Start,
-            engine,
-            metrics.utilityWidth,
-            metrics.utilityHeight,
-            RoundedCornerShape(50),
-            palette.utilityButtons,
-            palette.labels,
-            configuration,
-            opacity,
-        )
+    val density = LocalDensity.current
+    val tolerancePx = with(density) { (metrics.utilityWidth * 0.7f).toPx() }
+    ControllerTouchSurface(
+        engine = engine,
+        hapticsEnabled = configuration.hapticsEnabled,
+        modifier = modifier,
+        resolveActive = { point, frames -> nearestButtonHitTest(point, frames, tolerancePx) },
+    ) {
+        Row(horizontalArrangement = Arrangement.spacedBy(metrics.utilitySpacing)) {
+            UtilityCap(NestopiaButton.Select, "SELECT", metrics, palette, opacity)
+            UtilityCap(NestopiaButton.Start, "START", metrics, palette, opacity)
+        }
     }
 }
+
+@Composable
+private fun ControllerTouchScope.UtilityCap(
+    button: NestopiaButton,
+    label: String,
+    metrics: ControllerMetrics,
+    palette: ControllerPalette,
+    opacity: Float,
+) {
+    val isActive = active.contains(button)
+    val pressedScale by animateOverlayScale(isActive)
+    Box(
+        modifier =
+            Modifier
+                .size(metrics.utilityWidth, metrics.utilityHeight)
+                .graphicsLayer {
+                    scaleX = pressedScale
+                    scaleY = pressedScale
+                }.background(utilityCapsuleBrush(palette.utilityButtons, opacity), CircleShape)
+                .border(1.dp, Color.White.copy(alpha = 0.22f * opacity), CircleShape)
+                .semantics { contentDescription = label }
+                .reportBounds(button),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(text = label, color = palette.labels, fontSize = 9.sp, fontWeight = FontWeight.Black)
+    }
+}
+
+// MARK: Action buttons (A / B)
 
 @Composable
 private fun ActionButtons(
@@ -287,101 +326,84 @@ private fun ActionButtons(
     opacity: Float,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    val density = LocalDensity.current
+    val tolerancePx = with(density) { (metrics.actionSize * 0.7f).toPx() }
+    ControllerTouchSurface(
+        engine = engine,
+        hapticsEnabled = configuration.hapticsEnabled,
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(metrics.actionSpacing),
-        verticalAlignment = Alignment.Bottom,
+        resolveActive = { point, frames -> nearestButtonHitTest(point, frames, tolerancePx) },
     ) {
-        Box(Modifier.padding(bottom = metrics.actionSize * 0.22f)) {
-            ControllerButton(
-                "B",
-                NestopiaButton.B,
-                engine,
-                metrics.actionSize,
-                metrics.actionSize,
-                CircleShape,
-                palette.actionButtons,
-                palette.labels,
-                configuration,
-                opacity,
-            )
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(metrics.actionSpacing),
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            Box(Modifier.padding(bottom = metrics.actionSize * 0.22f)) {
+                ActionCap(NestopiaButton.B, "B", metrics, palette, opacity)
+            }
+            ActionCap(NestopiaButton.A, "A", metrics, palette, opacity)
         }
-        ControllerButton(
-            "A",
-            NestopiaButton.A,
-            engine,
-            metrics.actionSize,
-            metrics.actionSize,
-            CircleShape,
-            palette.actionButtons,
-            palette.labels,
-            configuration,
-            opacity,
+    }
+}
+
+@Composable
+private fun ControllerTouchScope.ActionCap(
+    button: NestopiaButton,
+    label: String,
+    metrics: ControllerMetrics,
+    palette: ControllerPalette,
+    opacity: Float,
+) {
+    val isActive = active.contains(button)
+    val pressedScale by animateOverlayScale(isActive)
+    val density = LocalDensity.current
+    val diameterPx = with(density) { metrics.actionSize.toPx() }
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier =
+                Modifier
+                    .size(metrics.actionSize)
+                    .graphicsLayer {
+                        scaleX = pressedScale
+                        scaleY = pressedScale
+                    }.shadow(3.dp, CircleShape)
+                    .background(actionCapBrush(palette.actionButtons, opacity, diameterPx), CircleShape)
+                    .border(1.2.dp, Color.White.copy(alpha = 0.32f * opacity), CircleShape)
+                    .border(1.dp, Color.Black.copy(alpha = 0.28f * opacity), CircleShape)
+                    .semantics { contentDescription = label }
+                    .reportBounds(button),
+        )
+        Text(
+            text = label,
+            color = palette.bodyLabel.copy(alpha = opacity),
+            fontSize = 10.sp,
+            fontWeight = FontWeight.Black,
         )
     }
 }
 
 @Composable
-private fun ControllerButton(
-    label: String,
-    button: NestopiaButton,
-    engine: NestopiaEngine,
-    width: Dp,
-    height: Dp,
-    shape: Shape,
-    color: Color,
-    labelColor: Color,
-    configuration: NestopiaControllerConfiguration,
-    opacity: Float,
-) {
-    val surface = color.copy(alpha = color.alpha * opacity)
-    val hapticFeedback = LocalHapticFeedback.current
-    var isPressed by remember(button) { mutableStateOf(false) }
-    val pressedScale by
-        animateFloatAsState(
-            targetValue = if (isPressed) 0.92f else 1f,
-            animationSpec = tween(durationMillis = 80),
-            label = "controllerButtonScale",
-        )
-    Box(
-        modifier =
-            Modifier
-                .size(width, height)
-                .graphicsLayer {
-                    scaleX = pressedScale
-                    scaleY = pressedScale
-                    alpha = if (isPressed) 0.88f else 1f
-                }.shadow(if (configuration.theme == NestopiaControllerTheme.System) 5.dp else 3.dp, shape)
-                .background(surface, shape)
-                .border(1.dp, Color.White.copy(alpha = 0.18f * opacity), shape)
-                .semantics { contentDescription = label }
-                .pointerInput(button, configuration.hapticsEnabled) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            if (configuration.hapticsEnabled) {
-                                hapticFeedback.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            }
-                            engine.setButton(button, true)
-                            try {
-                                tryAwaitRelease()
-                            } finally {
-                                engine.setButton(button, false)
-                                isPressed = false
-                            }
-                        },
-                    )
-                },
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = label,
-            color = labelColor,
-            fontSize = if (label.length == 1) 20.sp else 9.sp,
-            fontWeight = FontWeight.Black,
-        )
-    }
-}
+private fun animateOverlayScale(isActive: Boolean) =
+    animateFloatAsState(
+        targetValue = if (isActive) 0.93f else 1f,
+        animationSpec = tween(durationMillis = 70),
+        label = "controllerButtonScale",
+    )
+
+@Composable
+private fun animateOverlayAlpha(
+    isActive: Boolean,
+    target: Float,
+) = animateFloatAsState(
+    targetValue = if (isActive) target else 0f,
+    animationSpec = tween(durationMillis = 60),
+    label = "controllerArmOverlay",
+)
+
+private val bodySheenBrush =
+    Brush.verticalGradient(
+        listOf(Color.White.copy(alpha = 0.08f), Color.Transparent, Color.Black.copy(alpha = 0.10f)),
+    )
 
 private data class ControllerMetrics(
     val direction: Dp,
