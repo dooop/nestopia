@@ -43,9 +43,11 @@ private let actionFrames: [NestopiaControllerButton: CGRect] = [
 
 @Test func nearestButtonHitTestPicksTheContainingButton() {
     #expect(
-        nearestButtonHitTest(at: CGPoint(x: 25, y: 25), among: actionFrames, tolerance: 20) == [.b])
+        nearestButtonHitTest(at: CGPoint(x: 25, y: 25), among: actionFrames, tolerance: 20)
+            == [.b])
     #expect(
-        nearestButtonHitTest(at: CGPoint(x: 125, y: 25), among: actionFrames, tolerance: 20) == [.a])
+        nearestButtonHitTest(at: CGPoint(x: 125, y: 25), among: actionFrames, tolerance: 20)
+            == [.a])
 }
 
 @Test func nearestButtonHitTestResolvesASwipeBetweenTwoButtonsToOneOfThem() {

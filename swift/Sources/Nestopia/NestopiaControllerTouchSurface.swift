@@ -47,7 +47,8 @@ extension View {
 struct ControllerTouchSurface<Content: View>: View {
     let engine: NestopiaEngine
     let hapticsEnabled: Bool
-    let resolveActive: (CGPoint, [NestopiaControllerButton: CGRect]) -> Set<NestopiaControllerButton>
+    let resolveActive:
+        (CGPoint, [NestopiaControllerButton: CGRect]) -> Set<NestopiaControllerButton>
     let content: (Set<NestopiaControllerButton>) -> Content
 
     init(

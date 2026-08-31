@@ -137,13 +137,16 @@ public struct NestopiaControls: View {
                         Color.clear.frame(width: cell, height: cell)
                     }
                     GridRow {
-                        tvDirectionButton(.left, "◀", cell: cell, palette: palette, opacity: opacity)
+                        tvDirectionButton(
+                            .left, "◀", cell: cell, palette: palette, opacity: opacity)
                         centerBoss(size: cell, opacity: opacity)
-                        tvDirectionButton(.right, "▶", cell: cell, palette: palette, opacity: opacity)
+                        tvDirectionButton(
+                            .right, "▶", cell: cell, palette: palette, opacity: opacity)
                     }
                     GridRow {
                         Color.clear.frame(width: cell, height: cell)
-                        tvDirectionButton(.down, "▼", cell: cell, palette: palette, opacity: opacity)
+                        tvDirectionButton(
+                            .down, "▼", cell: cell, palette: palette, opacity: opacity)
                         Color.clear.frame(width: cell, height: cell)
                     }
                 }
@@ -178,30 +181,35 @@ public struct NestopiaControls: View {
                 hapticsEnabled: configuration.hapticsEnabled,
                 resolveActive: { point, _ in
                     dPadHitTest(at: point, in: CGRect(origin: .zero, size: bounds))
-                }
-            ) { active in
-                ZStack {
-                    crossPlate(size: bounds, palette: palette, opacity: opacity)
-                    Grid(horizontalSpacing: 0, verticalSpacing: 0) {
-                        GridRow {
-                            Color.clear.frame(width: cell, height: cell)
-                            armOverlay(.up, active: active, cell: cell, opacity: opacity)
-                            Color.clear.frame(width: cell, height: cell)
-                        }
-                        GridRow {
-                            armOverlay(.left, active: active, cell: cell, opacity: opacity)
-                            centerBoss(size: cell, opacity: opacity)
-                            armOverlay(.right, active: active, cell: cell, opacity: opacity)
-                        }
-                        GridRow {
-                            Color.clear.frame(width: cell, height: cell)
-                            armOverlay(.down, active: active, cell: cell, opacity: opacity)
-                            Color.clear.frame(width: cell, height: cell)
+                },
+                content: { active in
+                    ZStack {
+                        crossPlate(size: bounds, palette: palette, opacity: opacity)
+                        Grid(horizontalSpacing: 0, verticalSpacing: 0) {
+                            GridRow {
+                                Color.clear.frame(width: cell, height: cell)
+                                armOverlay(
+                                    .up, active: active, cell: cell, opacity: opacity)
+                                Color.clear.frame(width: cell, height: cell)
+                            }
+                            GridRow {
+                                armOverlay(
+                                    .left, active: active, cell: cell, opacity: opacity)
+                                centerBoss(size: cell, opacity: opacity)
+                                armOverlay(
+                                    .right, active: active, cell: cell, opacity: opacity)
+                            }
+                            GridRow {
+                                Color.clear.frame(width: cell, height: cell)
+                                armOverlay(
+                                    .down, active: active, cell: cell, opacity: opacity)
+                                Color.clear.frame(width: cell, height: cell)
+                            }
                         }
                     }
+                    .frame(width: bounds.width, height: bounds.height)
                 }
-                .frame(width: bounds.width, height: bounds.height)
-            }
+            )
         }
     #endif
 
@@ -241,11 +249,14 @@ public struct NestopiaControls: View {
     // MARK: - Utility buttons (SELECT / START)
 
     #if os(tvOS)
-        private func utilityButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View
-        {
+        private func utilityButtons(
+            metrics: Metrics, palette: Palette, opacity: Double
+        ) -> some View {
             HStack(spacing: metrics.utilitySpacing) {
-                tvUtilityButton(.select, "SELECT", metrics: metrics, palette: palette, opacity: opacity)
-                tvUtilityButton(.start, "START", metrics: metrics, palette: palette, opacity: opacity)
+                tvUtilityButton(
+                    .select, "SELECT", metrics: metrics, palette: palette, opacity: opacity)
+                tvUtilityButton(
+                    .start, "START", metrics: metrics, palette: palette, opacity: opacity)
             }
         }
 
@@ -266,24 +277,27 @@ public struct NestopiaControls: View {
             .buttonStyle(.plain)
         }
     #else
-        private func utilityButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View
-        {
+        private func utilityButtons(
+            metrics: Metrics, palette: Palette, opacity: Double
+        ) -> some View {
             ControllerTouchSurface(
                 engine: engine,
                 hapticsEnabled: configuration.hapticsEnabled,
                 resolveActive: { point, frames in
-                    nearestButtonHitTest(at: point, among: frames, tolerance: metrics.utility.width * 0.7)
+                    nearestButtonHitTest(
+                        at: point, among: frames, tolerance: metrics.utility.width * 0.7)
+                },
+                content: { active in
+                    HStack(spacing: metrics.utilitySpacing) {
+                        utilityCap(
+                            .select, label: "SELECT", metrics: metrics, palette: palette,
+                            opacity: opacity, active: active)
+                        utilityCap(
+                            .start, label: "START", metrics: metrics, palette: palette,
+                            opacity: opacity, active: active)
+                    }
                 }
-            ) { active in
-                HStack(spacing: metrics.utilitySpacing) {
-                    utilityCap(
-                        .select, label: "SELECT", metrics: metrics, palette: palette, opacity: opacity,
-                        active: active)
-                    utilityCap(
-                        .start, label: "START", metrics: metrics, palette: palette, opacity: opacity,
-                        active: active)
-                }
-            }
+            )
         }
 
         private func utilityCap(
@@ -320,7 +334,9 @@ public struct NestopiaControls: View {
     // MARK: - Action buttons (A / B)
 
     #if os(tvOS)
-        private func actionButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
+        private func actionButtons(
+            metrics: Metrics, palette: Palette, opacity: Double
+        ) -> some View {
             HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
                 tvActionButton(.b, "B", metrics: metrics, palette: palette, opacity: opacity)
                     .padding(.bottom, metrics.action.height * 0.22)
@@ -339,26 +355,35 @@ public struct NestopiaControls: View {
                 }
             } label: {
                 actionCapVisual(
-                    label: label, diameter: metrics.action.width, palette: palette, opacity: opacity,
-                    isActive: false)
+                    label: label, diameter: metrics.action.width, palette: palette,
+                    opacity: opacity, isActive: false)
             }
             .buttonStyle(.plain)
         }
     #else
-        private func actionButtons(metrics: Metrics, palette: Palette, opacity: Double) -> some View {
+        private func actionButtons(
+            metrics: Metrics, palette: Palette, opacity: Double
+        ) -> some View {
             ControllerTouchSurface(
                 engine: engine,
                 hapticsEnabled: configuration.hapticsEnabled,
                 resolveActive: { point, frames in
-                    nearestButtonHitTest(at: point, among: frames, tolerance: metrics.action.width * 0.7)
-                }
-            ) { active in
-                HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
-                    actionCap(.b, label: "B", metrics: metrics, palette: palette, opacity: opacity, active: active)
+                    nearestButtonHitTest(
+                        at: point, among: frames, tolerance: metrics.action.width * 0.7)
+                },
+                content: { active in
+                    HStack(alignment: .bottom, spacing: metrics.actionSpacing) {
+                        actionCap(
+                            .b, label: "B", metrics: metrics, palette: palette,
+                            opacity: opacity, active: active
+                        )
                         .padding(.bottom, metrics.action.height * 0.22)
-                    actionCap(.a, label: "A", metrics: metrics, palette: palette, opacity: opacity, active: active)
+                        actionCap(
+                            .a, label: "A", metrics: metrics, palette: palette,
+                            opacity: opacity, active: active)
+                    }
                 }
-            }
+            )
         }
 
         private func actionCap(
@@ -378,7 +403,9 @@ public struct NestopiaControls: View {
     ) -> some View {
         VStack(spacing: 4) {
             Circle()
-                .fill(actionCapGradient(color: palette.action, opacity: opacity, diameter: diameter))
+                .fill(
+                    actionCapGradient(color: palette.action, opacity: opacity, diameter: diameter)
+                )
                 .overlay(Circle().strokeBorder(.white.opacity(0.32 * opacity), lineWidth: 1.2))
                 .overlay(Circle().stroke(.black.opacity(0.28 * opacity), lineWidth: 1))
                 .frame(width: diameter, height: diameter)

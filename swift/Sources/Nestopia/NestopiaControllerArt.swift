@@ -150,7 +150,9 @@ extension Color {
             var saturation: CGFloat = 0
             var brightness: CGFloat = 0
             var alpha: CGFloat = 0
-            guard UIColor(self).getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+            guard
+                UIColor(self).getHue(
+                    &hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
             else { return self }
             let adjusted = min(max(Double(brightness) + delta, 0), 1)
             return Color(
