@@ -165,7 +165,6 @@ bool nestopia_engine_load_rom(NestopiaEngine *engine, const char *romPath, const
         return false;
     }
     engine->sound.SetVolume(Nes::Api::Sound::ALL_CHANNELS, 100);
-    engine->sound.SetSpeaker(Nes::Api::Sound::SPEAKER_MONO);
 
     engine->audioSamples = audioSampleRate / (engine->machine.GetMode() == Nes::Api::Machine::PAL ? 50 : 60);
     engine->audioOutput.samples[0] = engine->audioBuffer.data();
